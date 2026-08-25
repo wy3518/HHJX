@@ -47,14 +47,18 @@ var Idle = (function () {
     var expPerSec = CONFIG.EXP.baseExpPerMin / 60;
     var goldPerSec = CONFIG.EXP.goldPerMin / 60;
 
-    // 只有选了关卡才挂机产出
-    if (s.currentStage) {
+    // 地图移动驱动（自动寻路）：沿路推进，野外可遇怪
+    var area = State.getCurrentArea();
+    if (typeof WorldMap !== 'undefined' && WorldMap.step) WorldMap.step();
+
+    // 非城镇区域（野外/洞穴/魂境）有怪物才产出与战斗；城镇为安全区不产出
+    if (area && area.type !== 'town' && area.monsters) {
       State.addExp(expPerSec);
       State.addGold(goldPerSec);
     }
 
     // 每3秒执行一次战斗
-    if (tickCount % 3 === 0 && s.currentStage) {
+    if (area && area.type !== 'town' && area.monsters && tickCount % 3 === 0) {
       Combat.executeRound();
     }
 

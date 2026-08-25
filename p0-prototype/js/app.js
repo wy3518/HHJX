@@ -27,7 +27,8 @@
       UI.refresh();
 
       // 如果之前在挂机，自动恢复
-      if (State.get().currentStage) {
+      var map = State.get().map;
+      if (map && map.areaId) {
         Idle.start();
       }
     } else {

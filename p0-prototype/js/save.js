@@ -47,7 +47,13 @@ var Save = (function () {
   }
 
   function migrate(old) {
-    // P0 v1 无需迁移
+    // P0 v1 -> v2：补大地图字段
+    if (!old.map) {
+      old.map = { areaId: 'qingshi', x: 11, y: 10, routeExitId: null, routes: {}, explored: {} };
+    }
+    if (!old.map.explored) old.map.explored = { qingshi: { killed: {}, visited: true } };
+    if (!old.map.routes) old.map.routes = {};
+    old.version = CONFIG.SAVE.version;
     return old;
   }
 

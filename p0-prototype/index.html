@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>洪荒剑仙 P0 原型</title>
-<link rel="stylesheet" href="css/style.css?v=6">
+<link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body>
 
@@ -67,14 +67,23 @@
       <div id="power-display" class="power-display">--</div>
     </aside>
 
-    <!-- 中栏：挂机 + 战斗日志 -->
+    <!-- 中栏：大地图 + 战斗日志 -->
     <section class="panel center-panel">
-      <h3>关卡选择</h3>
-      <div id="stage-list" class="stage-list"></div>
+      <div class="map-head">
+        <h3 id="map-title">青石镇</h3>
+        <span id="map-pos" class="map-pos"></span>
+      </div>
+      <div id="worldmap" class="worldmap">
+        <svg id="worldmap-bg" class="worldmap-bg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet"></svg>
+        <div id="worldmap-nodes" class="worldmap-nodes"></div>
+      </div>
+      <div id="map-travel" class="map-travel"></div>
+      <div id="wm-legend" class="wm-legend"></div>
 
       <div class="idle-status">
-        <span id="idle-state">未开始挂机</span>
+        <span id="map-loc" class="idle-state"></span>
         <button id="btn-toggle-idle" class="btn-sm">开始挂机</button>
+        <button id="btn-stop-move" class="btn-sm" style="display:none">停</button>
       </div>
 
       <h3 style="margin-top:16px">战斗日志</h3>
@@ -136,16 +145,17 @@
 
 </div>
 
-<!-- 脚本引用顺序：数据 -> 总线 -> 状态 -> 系统 -> UI -> 入口 -->
-<script src="js/data.js?v=6"></script>
+<!-- 脚本引用顺序：数据 -> 总线 -> 状态 -> 大地图 -> 系统 -> UI -> 入口 -->
+<script src="js/data.js?v=7"></script>
 <script src="js/eventbus.js?v=3"></script>
-<script src="js/state.js?v=6"></script>
-<script src="js/combat.js?v=6"></script>
+<script src="js/state.js?v=7"></script>
+<script src="js/map.js?v=4"></script>
+<script src="js/combat.js?v=7"></script>
 <script src="js/drops.js?v=6"></script>
 <script src="js/forge.js?v=6"></script>
-<script src="js/idle.js?v=3"></script>
-<script src="js/save.js?v=5"></script>
-<script src="js/ui.js?v=6"></script>
-<script src="js/app.js?v=5"></script>
+<script src="js/idle.js?v=5"></script>
+<script src="js/save.js?v=6"></script>
+<script src="js/ui.js?v=9"></script>
+<script src="js/app.js?v=6"></script>
 </body>
 </html>

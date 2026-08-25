@@ -233,46 +233,164 @@ var CONFIG = (function () {
     }
   };
 
-  /* ---- 怪物数据（前 3 章，来自怪物资料库） ---- */
-  var MONSTERS = [
-    /* 第一章 乱葬岗（lv 1-10） */
-    { id: 'm101', name: '杂毛野犬',   lv: 1,  hp: 50,   atk: 4,   def: 1,  type: 'grunt', size: '小',   ch: 1, expR: 5,    goldR: 8   },
-    { id: 'm102', name: '食腐僵尸',   lv: 3,  hp: 150,  atk: 6,   def: 3,  type: 'grunt', size: '中',   ch: 1, expR: 15,   goldR: 24  },
-    { id: 'm103', name: '黑毛野犬',   lv: 5,  hp: 250,  atk: 11,  def: 8,  type: 'grunt', size: '小',   ch: 1, expR: 25,   goldR: 40  },
-    { id: 'm104', name: '爆裂僵尸',   lv: 6,  hp: 300,  atk: 13,  def: 8,  type: 'grunt', size: '中',   ch: 1, expR: 30,   goldR: 48  },
-    { id: 'm105', name: '刀盾狼兵',   lv: 6,  hp: 300,  atk: 14,  def: 15, type: 'grunt', size: '中',   ch: 1, expR: 30,   goldR: 48  },
-    { id: 'm106', name: '食腐毒僵尸', lv: 7,  hp: 350,  atk: 14,  def: 12, type: 'grunt', size: '中',   ch: 1, expR: 35,   goldR: 56  },
-    { id: 'm107', name: '铁弓狼兵',   lv: 7,  hp: 350,  atk: 15,  def: 11, type: 'grunt', size: '中',   ch: 1, expR: 35,   goldR: 56  },
-    { id: 'm108', name: '锤盾狼兵',   lv: 8,  hp: 400,  atk: 17,  def: 21, type: 'grunt', size: '中',   ch: 1, expR: 40,   goldR: 64  },
-    { id: 'm109', name: '刀盾狼精',   lv: 9,  hp: 450,  atk: 19,  def: 24, type: 'grunt', size: '中',   ch: 1, expR: 45,   goldR: 72  },
-    { id: 'm110', name: '狼兵牙将',   lv: 10, hp: 1200, atk: 58,  def: 30, type: 'elite', size: '中',   ch: 1, expR: 500,  goldR: 250, isBoss: true },
+  /* ============================================================
+   * 世界场景规格表（权威数据源：worldmap-redesign.html 策划稿）
+   * 地图名 / 怪物名 / 等级区间 / 所属主城 均按策划原稿，禁止自造。
+   * 精英(elite)与首领(boss) 放置位置由开发自行决定（复用策划已出现的怪物名）。
+   * ------------------------------------------------------------
+   * city: 所属主城 id；region: 界；ch: 章节；
+   * pos: [x,y] 世界总览图标点坐标（0-100 相对）；unlock: 解锁等级门槛
+   * monsters: 策划该场景怪物名（脚本据此 + elite/boss 生成具体对象）
+   * ============================================================ */
+  var AREA_SPECS = [
+    /* ===== 九 主 城（town · 安全区） ===== */
+    { id: 'qingshi',        name: '青石镇',     type: 'town', region: '凡界',  ch: 1,  city: 'qingshi',        lvMin: 1,  lvMax: 10,  unlock: 1,   pos: [15, 20], desc: '凡人出发地，安身之所，镇内禁止打斗。' },
+    { id: 'luoxiacheng',    name: '落霞城',     type: 'town', region: '凡界',  ch: 2,  city: 'luoxiacheng',    lvMin: 10, lvMax: 30,  unlock: 10,  pos: [30, 16], desc: '九州繁华主城，妖气初起的江湖都会。' },
+    { id: 'hanyuguan',      name: '寒玉关',     type: 'town', region: '凡界',  ch: 4,  city: 'hanyuguan',      lvMin: 30, lvMax: 45,  unlock: 30,  pos: [42, 12], desc: '北域极寒关隘，冰原的咽喉。' },
+    { id: 'yanyud',         name: '烟雨渡',     type: 'town', region: '凡界',  ch: 5,  city: 'yanyud',         lvMin: 45, lvMax: 55,  unlock: 45,  pos: [50, 18], desc: '江南富庶渡口，商旅云集。' },
+    { id: 'xuandug',        name: '玄都观',     type: 'town', region: '凡界',  ch: 6,  city: 'xuandug',        lvMin: 55, lvMax: 70,  unlock: 55,  pos: [58, 14], desc: '仙门道观，灵气汇聚之地。' },
+    { id: 'youmingdu',      name: '幽冥渡',     type: 'town', region: '冥界',  ch: 7,  city: 'youmingdu',      lvMin: 70, lvMax: 85,  unlock: 70,  pos: [70, 18], desc: '冥界入口，轮回初渡之处。（一转解锁）' },
+    { id: 'chiyouzhong',    name: '蚩尤冢',     type: 'town', region: '北荒',  ch: 8,  city: 'chiyouzhong',    lvMin: 85, lvMax: 95,  unlock: 85,  pos: [64, 26], desc: '北荒古战场遗址，蚩尤陨落之地。' },
+    { id: 'honghuangjianzhong', name: '洪荒剑冢', type: 'town', region: '洪荒', ch: 9,  city: 'honghuangjianzhong', lvMin: 95, lvMax: 99, unlock: 95, pos: [78, 24], desc: '东海海底终局，天下名剑葬处。' },
+    { id: 'lingxiaojing',   name: '凌霄境',     type: 'town', region: '仙界',  ch: 10, city: 'lingxiaojing',   lvMin: 108, lvMax: 120, unlock: 108, pos: [86, 12], desc: '仙界天庭所在。（三转后开启）' },
 
-    /* 第二章 瓦当山（lv 10-25） */
-    { id: 'm201', name: '锤盾狼精',   lv: 11, hp: 550,  atk: 21,  def: 31, type: 'grunt', size: '中',   ch: 2, expR: 55,   goldR: 88  },
-    { id: 'm202', name: '铁弓狼精',   lv: 12, hp: 600,  atk: 21,  def: 22, type: 'grunt', size: '中',   ch: 2, expR: 60,   goldR: 96  },
-    { id: 'm203', name: '幡旗狼精',   lv: 13, hp: 650,  atk: 24,  def: 26, type: 'grunt', size: '中',   ch: 2, expR: 65,   goldR: 104 },
-    { id: 'm204', name: '长枪狼精',   lv: 14, hp: 700,  atk: 26,  def: 33, type: 'grunt', size: '中',   ch: 2, expR: 70,   goldR: 112 },
-    { id: 'm205', name: '猪精十夫长', lv: 14, hp: 1680, atk: 45,  def: 30, type: 'elite', size: '大',   ch: 2, expR: 350,  goldR: 200 },
-    { id: 'm206', name: '双镰尸妖',   lv: 15, hp: 750,  atk: 44,  def: 40, type: 'grunt', size: '中',   ch: 2, expR: 75,   goldR: 120 },
-    { id: 'm207', name: '长枪猫兵',   lv: 16, hp: 800,  atk: 32,  def: 42, type: 'grunt', size: '小',   ch: 2, expR: 80,   goldR: 128 },
-    { id: 'm208', name: '飞刀猫兵',   lv: 17, hp: 850,  atk: 29,  def: 47, type: 'grunt', size: '小',   ch: 2, expR: 85,   goldR: 136 },
-    { id: 'm209', name: '铁爪猫妖',   lv: 18, hp: 900,  atk: 32,  def: 49, type: 'grunt', size: '小',   ch: 2, expR: 90,   goldR: 144 },
-    { id: 'm210', name: '妖王护卫',   lv: 20, hp: 2400, atk: 63,  def: 58, type: 'elite', size: '中',   ch: 2, expR: 1000, goldR: 500, isBoss: true },
+    /* ===== 青石镇（章1 · 1-15） ===== */
+    { id: 'qingshiwai', name: '青石镇外', type: 'field', region: '凡界', ch: 1, city: 'qingshi', lvMin: 1,  lvMax: 3,  unlock: 1,  pos: [11, 26], desc: '镇外荒地，蝙蝠野狗出没。', monsters: ['蝙蝠', '杂毛野狗', '低等野狼'], elite: ['杂毛野狗'] },
+    { id: 'huangfenye', name: '荒坟野',  type: 'field', region: '凡界', ch: 1, city: 'qingshi', lvMin: 1,  lvMax: 3,  unlock: 1,  pos: [7, 30],  desc: '荒坟连片，阴气沉沉。', monsters: ['蝙蝠', '野狗'], elite: ['野狗'] },
+    { id: 'yelangpo',   name: '野狼坡',   type: 'field', region: '凡界', ch: 1, city: 'qingshi', lvMin: 6,  lvMax: 8,  unlock: 4,  pos: [19, 31], desc: '狼兵盘踞的山坡。', monsters: ['刀盾狼兵', '铁弓狼兵', '锤盾狼兵'], elite: ['锤盾狼兵'] },
+    { id: 'luolanggu',  name: '落狼谷',   type: 'field', region: '凡界', ch: 1, city: 'qingshi', lvMin: 6,  lvMax: 8,  unlock: 4,  pos: [23, 27], desc: '谷地狼群伏莽，妖气渐浓。', monsters: ['刀盾狼兵', '铁弓狼兵'], elite: ['刀盾狼兵'] },
+    { id: 'shinherzongx', name: '十二魂冢·下', type: 'cave', region: '凡界', ch: 1, city: 'qingshi', lvMin: 1, lvMax: 15, unlock: 2, pos: [12, 37], desc: '魂冢下层，双镰与冢中精怪横立。', monsters: ['战双镰', '野狗', '低等刀盾狼精', '低等锤盾狼精'], elite: ['战双镰'], boss: ['猪精十夫长'] },
+    { id: 'shinherzong_t', name: '十二魂冢·上', type: 'cave', region: '凡界', ch: 1, city: 'qingshi', lvMin: 1, lvMax: 15, unlock: 3, pos: [16, 39], desc: '魂冢上层，深处盘踞冢中妖将。', monsters: ['战双镰', '低等狼精', '低等长枪狼兵', '猪精十夫长'], elite: ['猪精十夫长'] },
 
-    /* 第三章 午桥庄（lv 25-40） */
-    { id: 'm301', name: '号角猫妖',   lv: 21, hp: 1050, atk: 30,  def: 57, type: 'grunt', size: '小',   ch: 3, expR: 105,  goldR: 168 },
-    { id: 'm302', name: '爆裂毒僵尸', lv: 24, hp: 1200, atk: 36,  def: 42, type: 'grunt', size: '中',   ch: 3, expR: 120,  goldR: 192 },
-    { id: 'm303', name: '红袍狐妖',   lv: 25, hp: 1250, atk: 10,  def: 50, type: 'grunt', size: '中',   ch: 3, expR: 125,  goldR: 200 },
-    { id: 'm304', name: '主战巨犀',   lv: 28, hp: 1400, atk: 60,  def: 30, type: 'grunt', size: '大',   ch: 3, expR: 140,  goldR: 224 },
-    { id: 'm305', name: '掘墓鬼',     lv: 28, hp: 1400, atk: 53,  def: 64, type: 'grunt', size: '中',   ch: 3, expR: 140,  goldR: 224 },
-    { id: 'm306', name: '黑掘墓鬼',   lv: 32, hp: 1600, atk: 47,  def: 64, type: 'grunt', size: '中',   ch: 3, expR: 160,  goldR: 256 },
-    { id: 'm307', name: '雌虎蛟',     lv: 34, hp: 1700, atk: 170, def: 64, type: 'grunt', size: '小',   ch: 3, expR: 170,  goldR: 272 },
-    { id: 'm308', name: '狐狸枪兵',   lv: 34, hp: 1700, atk: 51,  def: 70, type: 'grunt', size: '中',   ch: 3, expR: 170,  goldR: 272 },
-    { id: 'm309', name: '聒噪鬃',     lv: 30, hp: 3600, atk: 75,  def: 102,type: 'elite', size: '中',   ch: 3, expR: 1500, goldR: 750, isBoss: true },
-    { id: 'm310', name: '冰魄玄蛟',   lv: 40, hp: 8000, atk: 200, def: 120,type: 'boss',  size: '巨大', ch: 3, expR: 5000, goldR: 2000, isBoss: true }
+    /* ===== 落霞城（章2-3 · 10-32） ===== */
+    { id: 'xiehuntai',  name: '邪魂台',   type: 'ghost', region: '凡界', ch: 2, city: 'luoxiacheng', lvMin: 10, lvMax: 25, unlock: 10, pos: [27, 23], desc: '游魂汇聚的凶台。', monsters: ['刀盾狼兵魂魄', '猫妖魂魄', '傀儡魂魄', '野狗魂魄'], elite: ['猫妖魂魄'] },
+    { id: 'qingxijian', name: '清溪涧',   type: 'field', region: '凡界', ch: 2, city: 'luoxiacheng', lvMin: 12, lvMax: 18, unlock: 10, pos: [29, 27], desc: '溪涧潺潺，狼精猫兵出没。', monsters: ['幡旗狼精', '铁弓狼精', '长枪猫兵', '铁爪猫兵'], elite: ['铁爪猫兵'] },
+    { id: 'luoshui',    name: '洛水荒岸', type: 'field', region: '凡界', ch: 2, city: 'luoxiacheng', lvMin: 16, lvMax: 23, unlock: 12, pos: [35, 25], desc: '洛水荒岸，猫族弓手盘桓。', monsters: ['长枪猫妖', '铁爪猫兵', '飞刀猫兵', '飞刀猫妖'], elite: ['飞刀猫妖'] },
+    { id: 'yaozuyingdi',name: '妖族营地', type: 'field', region: '凡界', ch: 2, city: 'luoxiacheng', lvMin: 20, lvMax: 27, unlock: 14, pos: [31, 31], desc: '妖兵扎营之处，号角声震。', monsters: ['长枪猫妖', '铁爪猫妖', '号角猫妖', '红袍狐妖'], elite: ['号角猫妖'] },
+    { id: 'wuqiao',     name: '午桥废庄', type: 'field', region: '凡界', ch: 3, city: 'luoxiacheng', lvMin: 20, lvMax: 29, unlock: 16, pos: [25, 34], desc: '荒废村庄与古墓，妖兽横行。', monsters: ['长枪猫妖', '号角猫妖', '高等锤盾狼兵', '盗墓贼'], elite: ['盗墓贼'] },
+    { id: 'fengmingshan',name: '凤鸣山',  type: 'field', region: '凡界', ch: 3, city: 'luoxiacheng', lvMin: 25, lvMax: 29, unlock: 18, pos: [36, 33], desc: '巨兽出没的莽原之山。', monsters: ['主战巨犀', '高等锤盾狼兵', '红袍狐妖', '盗墓贼'], elite: ['主战巨犀'] },
+    { id: 'kongshansi', name: '空山寺',   type: 'field', region: '凡界', ch: 3, city: 'luoxiacheng', lvMin: 27, lvMax: 32, unlock: 20, pos: [21, 40], desc: '荒寺空门，妖魅潜行。', monsters: ['主战巨犀', '红袍狐妖', '盗墓贼', '黑盗墓贼'], elite: ['黑盗墓贼'] },
+    { id: 'qingshigudao',name: '青石古道', type: 'field', region: '凡界', ch: 3, city: 'luoxiacheng', lvMin: 30, lvMax: 30, unlock: 22, pos: [27, 43], desc: '通向寒玉关的古老官道，野猪成群。', monsters: ['聒噪鬃', '野猪精'], elite: ['聒噪鬃'] },
+
+    /* ===== 寒玉关（章4 · 30-54） ===== */
+    { id: 'hanyunxuegu',name: '寒云雪谷', type: 'field', region: '凡界', ch: 4, city: 'hanyuguan', lvMin: 34, lvMax: 39, unlock: 30, pos: [40, 17], desc: '雪线之上的狐妖谷地。', monsters: ['狐狸枪兵', '狐狸弩兵', '狐狸号兵', '蓝袍狐妖'], elite: ['蓝袍狐妖'] },
+    { id: 'donggu',     name: '冻骨雪原', type: 'field', region: '凡界', ch: 4, city: 'hanyuguan', lvMin: 35, lvMax: 36, unlock: 31, pos: [38, 23], desc: '冻骨遍野的无人雪原，傀儡游荡。', monsters: ['雪地豺狗', '大锤傀儡壮汉', '双斧傀儡壮汉'], elite: ['大锤傀儡壮汉'] },
+    { id: 'yueluozhen', name: '月落镇',   type: 'field', region: '凡界', ch: 4, city: 'hanyuguan', lvMin: 36, lvMax: 39, unlock: 32, pos: [45, 21], desc: '被傀儡屠掠的边陲小镇。', monsters: ['傀儡枪兵', '傀儡剑卒', '傀儡弓兵', '壮汉屠夫'], elite: ['壮汉屠夫'] },
+    { id: 'xuehudong',  name: '雪狐洞',   type: 'cave', region: '凡界', ch: 4, city: 'hanyuguan', lvMin: 36, lvMax: 42, unlock: 32, pos: [43, 27], desc: '雪狐妖盘踞的寒洞。', monsters: ['狐狸步卒', '狐狸号兵', '狐狸强弩手'], elite: ['狐狸强弩手'] },
+    { id: 'guling1',    name: '古王陵墓·上', type: 'cave', region: '凡界', ch: 4, city: 'hanyuguan', lvMin: 36, lvMax: 48, unlock: 33, pos: [40, 30], desc: '上古王陵上层，铜甲傀儡巡弋。', monsters: ['傀儡枪兵', '铜甲傀儡枪兵', '铜甲傀儡剑卒', '壮汉屠夫'], elite: ['铜甲傀儡剑卒'] },
+    { id: 'guling2',    name: '古王陵墓·下', type: 'cave', region: '凡界', ch: 4, city: 'hanyuguan', lvMin: 36, lvMax: 48, unlock: 34, pos: [44, 34], desc: '古王陵下层，旗手弓兵密布。', monsters: ['铜甲傀儡旗手', '铜甲傀儡弓兵', '钉耙傀儡壮汉'], elite: ['铜甲傀儡旗手'] },
+    { id: 'gumu',       name: '古王墓室', type: 'cave', region: '凡界', ch: 4, city: 'hanyuguan', lvMin: 36, lvMax: 48, unlock: 35, pos: [48, 36], desc: '古王长眠之室，墓主傀儡苏醒。', monsters: ['铜甲傀儡旗手', '壮汉屠夫'], elite: ['壮汉屠夫'], boss: ['古王傀儡'] },
+    { id: 'yaohubuluo', name: '妖狐部落', type: 'field', region: '凡界', ch: 4, city: 'hanyuguan', lvMin: 39, lvMax: 54, unlock: 34, pos: [47, 16], desc: '北地妖狐聚落的腹地。', monsters: ['狐狸精骑兵', '披甲鹿', '蓝袍狐妖', '狐狸斥候'], elite: ['披甲鹿'] },
+
+    /* ===== 烟雨渡（章5 · 41-60） ===== */
+    { id: 'qianhuling', name: '千狐岭',   type: 'field', region: '凡界', ch: 5, city: 'yanyud', lvMin: 41, lvMax: 46, unlock: 45, pos: [53, 24], desc: '狐族千骑奔掠的山岭。', monsters: ['狐狸长戟兵', '狐狸小校', '狐狸强弩手', '狐狸斥候'], elite: ['狐狸小校'] },
+    { id: 'yaohudong',  name: '妖狐洞',   type: 'cave', region: '凡界', ch: 5, city: 'yanyud', lvMin: 41, lvMax: 46, unlock: 45, pos: [57, 28], desc: '狐妖地底巢穴，巨人奴役出没。', monsters: ['狐狸强弩手', '狐狸斥候', '巨人战士'], elite: ['巨人战士'] },
+    { id: 'manjurengu', name: '蛮巨人谷', type: 'field', region: '凡界', ch: 5, city: 'yanyud', lvMin: 46, lvMax: 60, unlock: 46, pos: [63, 26], desc: '蛮族巨人盘踞的深谷。', monsters: ['巨人战士', '巨人投掷手', '巨人法师', '板斧蛮兵', '冰羌族勇士'], elite: ['巨人法师'] },
+    { id: 'shibapan',   name: '十八盘',   type: 'field', region: '凡界', ch: 5, city: 'yanyud', lvMin: 46, lvMax: 58, unlock: 46, pos: [60, 31], desc: '层叠盘道的峡谷险径。', monsters: ['巨人战士', '巨人投掷手', '斧头蛮子', '草叉蛮子'], elite: ['巨人投掷手'] },
+    { id: 'jiangyangud',name: '江烟古渡', type: 'field', region: '凡界', ch: 5, city: 'yanyud', lvMin: 57, lvMax: 60, unlock: 50, pos: [66, 21], desc: '大江之畔的古渡口，蟾精作祟。', monsters: ['恶水傀儡', '蟾精'], elite: ['蟾精'] },
+
+    /* ===== 玄都观（章6 · 60-69） ===== */
+    { id: 'lingshidao', name: '灵石岛',   type: 'field', region: '凡界', ch: 6, city: 'xuandug', lvMin: 60, lvMax: 65, unlock: 55, pos: [61, 20], desc: '灵气凝晶的江心岛。', monsters: ['火把小妖', '长棍小妖', '火弹小妖', '雌虎鲛'], elite: ['雌虎鲛'] },
+    { id: 'yanhuodao',  name: '厌火岛',   type: 'field', region: '凡界', ch: 6, city: 'xuandug', lvMin: 61, lvMax: 66, unlock: 56, pos: [66, 16], desc: '烈焰吞吐的凶险岛礁。', monsters: ['火把小校', '长棍小校', '嗜火小妖头目', '火弹小妖细作'], elite: ['嗜火小妖头目'] },
+    { id: 'luoxingwan', name: '落星湾',   type: 'field', region: '凡界', ch: 6, city: 'xuandug', lvMin: 60, lvMax: 65, unlock: 55, pos: [58, 22], desc: '流星坠落的港湾，虎族称雄。', monsters: ['火把小妖', '雌虎鲛', '虎王卫队'], elite: ['虎王卫队'] },
+    { id: 'pingazhen',  name: '平阿镇',   type: 'field', region: '凡界', ch: 6, city: 'xuandug', lvMin: 60, lvMax: 65, unlock: 55, pos: [64, 23], desc: '被倭猴劫掠的平地小镇。', monsters: ['倭猴', '木锨倭猴', '马勺倭猴', '单刀倭猴'], elite: ['单刀倭猴'] },
+    { id: 'shangyangyuan', name: '殇阳原', type: 'field', region: '凡界', ch: 6, city: 'xuandug', lvMin: 60, lvMax: 65, unlock: 55, pos: [69, 25], desc: '古战场殇阳之原，幽魂不散。', monsters: ['倭猴', '幽魂', '倭猴头目', '倭猴药师'], elite: ['倭猴头目'] },
+    { id: 'tengwang1',  name: '滕王墓·上', type: 'cave', region: '凡界', ch: 6, city: 'xuandug', lvMin: 63, lvMax: 67, unlock: 57, pos: [62, 27], desc: '滕王陵寝上层。', monsters: ['绿毛怪', '幽魂'], elite: ['幽魂'], boss: ['绿毛怪'] },
+    { id: 'tengwang2',  name: '滕王墓·下', type: 'cave', region: '凡界', ch: 6, city: 'xuandug', lvMin: 63, lvMax: 67, unlock: 58, pos: [66, 30], desc: '滕王陵寝下层。', monsters: ['绿毛怪', '幽魂'], elite: ['绿毛怪'] },
+    { id: 'doumotai',   name: '斗魔台',   type: 'field', region: '凡界', ch: 6, city: 'xuandug', lvMin: 64, lvMax: 64, unlock: 58, pos: [71, 20], desc: '妖猴斗法的擂台绝地。', monsters: ['铁镐倭猴', '斧头倭猴', '倭猴头目', '单刀倭猴'], elite: ['倭猴头目'] },
+    { id: 'manggu',     name: '蛮古山脉', type: 'field', region: '凡界', ch: 6, city: 'xuandug', lvMin: 66, lvMax: 68, unlock: 58, pos: [75, 18], desc: '蛮古山脊，飞猴御雷。', monsters: ['长槊飞猴', '幡旗飞猴', '招雷飞猴'], elite: ['招雷飞猴'] },
+    { id: 'dinghushan', name: '鼎湖山',   type: 'field', region: '凡界', ch: 6, city: 'xuandug', lvMin: 66, lvMax: 69, unlock: 59, pos: [70, 13], desc: '鼎湖山巅，魔猿啸聚。', monsters: ['大棒魔猿', '双锤魔猿', '魔猿头目'], elite: ['魔猿头目'] },
+
+    /* ===== 幽冥渡（章7 · 70-83 · 冥界） ===== */
+    { id: 'mengpodu',   name: '孟婆渡',   type: 'ghost', region: '冥界', ch: 7, city: 'youmingdu', lvMin: 71, lvMax: 73, unlock: 70, pos: [72, 23], desc: '忘川之畔，地府兵卒把守的渡口。', monsters: ['钢叉地府兵卒', '锤盾地府兵卒', '地府断魂兽'], elite: ['地府断魂兽'] },
+    { id: 'naiheqiao',  name: '奈何桥',   type: 'ghost', region: '冥界', ch: 7, city: 'youmingdu', lvMin: 71, lvMax: 75, unlock: 70, pos: [76, 26], desc: '奈何桥上，地狱树盘根错节。', monsters: ['钢叉地府兵卒', '铁链妖', '冥府小厮', '地狱树'], elite: ['地狱树'] },
+    { id: 'youminggumu',name: '幽冥古墓', type: 'cave', region: '冥界', ch: 7, city: 'youmingdu', lvMin: 71, lvMax: 76, unlock: 70, pos: [78, 30], desc: '冥府古墓，亡魂与兵卒杂处。', monsters: ['钢叉地府兵卒', '锤盾地府兵卒', '铁链妖', '冥府小厮', '地府断魂兽'], elite: ['冥府小厮'] },
+    { id: 'huangquanlu',name: '黄泉路',   type: 'ghost', region: '冥界', ch: 7, city: 'youmingdu', lvMin: 73, lvMax: 76, unlock: 71, pos: [70, 28], desc: '黄泉幽径，铁链妖与断魂拦路。', monsters: ['铁链妖', '冥府小厮'], elite: ['铁链妖'], boss: ['地狱断魂'] },
+    { id: 'yunmeng',    name: '云梦大泽', type: 'field', region: '冥界', ch: 7, city: 'youmingdu', lvMin: 73, lvMax: 83, unlock: 72, pos: [82, 34], desc: '冥泽万顷，罗刹与鳄鱼精潜藏。', monsters: ['钢叉罗刹', '锤盾罗刹', '大刀鳄鱼精', '蜥蜴精刀兵', '弓箭蜥蜴精'], elite: ['锤盾罗刹'], boss: ['大刀鳄鱼精'] },
+    { id: 'heiyishan',  name: '黑翼山',   type: 'ghost', region: '冥界', ch: 7, city: 'youmingdu', lvMin: 77, lvMax: 79, unlock: 74, pos: [74, 32], desc: '黑翼蝙蝠蔽日的冥山。', monsters: ['钢叉罗刹', '牛首阿旁', '马面阿旁', '冥府亡魂'], elite: ['牛首阿旁'], boss: ['暗翼蝙蝠'] },
+    { id: 'wangxiangtai',name: '望乡台',  type: 'ghost', region: '冥界', ch: 7, city: 'youmingdu', lvMin: 77, lvMax: 79, unlock: 74, pos: [80, 28], desc: '亡魂回望故乡的高台。', monsters: ['钢叉罗刹', '牛首阿旁', '冥府亡魂', '冥府弓箭兵'], elite: ['牛首阿旁'] },
+
+    /* ===== 蚩尤冢（章8 · 75-95） ===== */
+    { id: 'donghai',    name: '东海',     type: 'field', region: '北荒', ch: 8, city: 'chiyouzhong', lvMin: 75, lvMax: 82, unlock: 75, pos: [61, 32], desc: '东海水畔，穿山甲监工凿山。', monsters: ['穿山甲', '民兵亡魂', '穿山甲监工'], elite: ['穿山甲监工'] },
+    { id: 'laoshan',    name: '崂山',     type: 'field', region: '北荒', ch: 8, city: 'chiyouzhong', lvMin: 75, lvMax: 85, unlock: 75, pos: [56, 30], desc: '崂山幽处，贪心魂魄游荡。', monsters: ['高级穿山甲', '贪心魂魄', '穿山甲苦力'], elite: ['贪心魂魄'] },
+    { id: 'qianzhong',  name: '黔中古墟', type: 'field', region: '北荒', ch: 8, city: 'chiyouzhong', lvMin: 82, lvMax: 86, unlock: 78, pos: [66, 37], desc: '黔中上古废墟，毒蜂巨兽横行。', monsters: ['巨型毒蜂', '嗜血红魔', '双斧青牛妖', '象怪首领'], elite: ['象怪首领'] },
+    { id: 'taoyuan',    name: '桃源浣溪', type: 'field', region: '北荒', ch: 8, city: 'chiyouzhong', lvMin: 83, lvMax: 87, unlock: 79, pos: [52, 36], desc: '世外桃源，桃树精与蜂妖守护。', monsters: ['巨型毒蜂', '桃树精', '双斧青牛妖', '蜂妖头领'], elite: ['桃树精'] },
+    { id: 'yanmofeixu', name: '炎魔废墟', type: 'field', region: '北荒', ch: 8, city: 'chiyouzhong', lvMin: 85, lvMax: 88, unlock: 80, pos: [70, 40], desc: '炎魔肆虐过后的焦土废墟。', monsters: ['炎魔蛤蟆', '炎魔鳄鱼', '烈焰淤泥怪'], elite: ['炎魔鳄鱼'] },
+    { id: 'fentiangu',  name: '焚天谷',   type: 'cave', region: '北荒', ch: 8, city: 'chiyouzhong', lvMin: 89, lvMax: 92, unlock: 82, pos: [74, 44], desc: '烈火焚谷，火焰守卫镇守。', monsters: ['大锤火焰守卫', '大刀火焰守卫'], elite: ['大刀火焰守卫'], boss: ['火焰守卫'] },
+    { id: 'shuiyonggu', name: '水涌谷',   type: 'cave', region: '北荒', ch: 8, city: 'chiyouzhong', lvMin: 90, lvMax: 94, unlock: 84, pos: [78, 47], desc: '水泉奔涌的幽谷，虾蟹成群。', monsters: ['血钳虾精', '蓝螯蟹妖'], elite: ['蓝螯蟹妖'], boss: ['碧鳞鱼怪'] },
+    { id: 'yuelixia',   name: '月离峡',   type: 'cave', region: '北荒', ch: 8, city: 'chiyouzhong', lvMin: 90, lvMax: 94, unlock: 84, pos: [58, 43], desc: '月光不达的寒峡，紫蟹栖居。', monsters: ['绣须虾精', '紫壳蟹妖'], elite: ['紫壳蟹妖'], boss: ['苍蓝鱼怪'] },
+    { id: 'hujuguan',   name: '虎踞关',   type: 'field', region: '北荒', ch: 8, city: 'chiyouzhong', lvMin: 90, lvMax: 95, unlock: 85, pos: [68, 36], desc: '虎妖扼守的雄关要道。', monsters: ['长枪虎兵', '短矛虎兵', '刀盾虎妖'], elite: ['刀盾虎妖'] },
+
+    /* ===== 洪荒剑冢（章9 · 95-99 · 终局） ===== */
+    { id: 'honghuangguxu', name: '洪荒古墟', type: 'cave', region: '洪荒', ch: 9, city: 'honghuangjianzhong', lvMin: 95, lvMax: 99, unlock: 95, pos: [80, 42], desc: '东海海底终局葬剑之所，剑祖残念盘踞。', monsters: ['洪荒残兽', '上古魔灵'], elite: ['上古魔灵'], boss: ['剑祖残念'] },
+
+    /* ===== 凌霄境（章10 · 108+ · 仙界） ===== */
+    { id: 'lingxiaoxianjie', name: '凌霄仙阶', type: 'field', region: '仙界', ch: 10, city: 'lingxiaojing', lvMin: 108, lvMax: 120, unlock: 108, pos: [88, 15], desc: '天庭凌霄仙阶，天兵仙将列守。', monsters: ['天兵', '魔族余孽'], elite: ['仙将'] }
   ];
 
-  /* ---- 关卡进度表（前 3 章） ---- */
+  /* ============================================================
+   * MONSTERS 生成
+   * 依据 AREA_SPECS：每个场景的 monsters 名 + elite/boss 名单，
+   * 按场景等级区间生成具体怪物对象。命名全部来自策划表，禁止自造。
+   * ------------------------------------------------------------
+   * 数值公式（P0 简化，便于冒烟平衡）：
+   *   grunt hp = max(20, 25 + lv*46)     atk = max(3, 3+lv*2.6)  def = max(2, 2+lv*1.2)
+   *   elite  hp×4 / atk×1.6 / def×1.35 / 体型"大"
+   *   boss   hp×11 / atk×2.2 / def×1.7 / 体型"巨大"
+   * ============================================================ */
+  var MONSTERS = [];
+  var _mseed = 0;      // 怪物 id 序（结果 m1001..）
+  function _mstat(lv, type) {
+    var hp = Math.max(20, Math.floor(25 + lv * 46));
+    var atk = Math.max(3, Math.floor(3 + lv * 2.6));
+    var def = Math.max(2, Math.floor(2 + lv * 1.2));
+    if (type === 'elite') { hp *= 4; atk = Math.floor(atk * 1.6); def = Math.floor(def * 1.35); }
+    if (type === 'boss')  { hp *= 11; atk = Math.floor(atk * 2.2); def = Math.floor(def * 1.7); }
+    return { hp: hp, atk: atk, def: def };
+  }
+  function _addM(sc, lv, name, type) {
+    var s = _mstat(lv, type);
+    var size = (type === 'boss') ? '巨大' : ((type === 'elite') ? '大' : ((_mseed % 2) ? '小' : '中'));
+    var mult = (type === 'boss') ? 20 : ((type === 'elite') ? 5 : 1);
+    _mseed += 1;
+    var m = {
+      id: 'm' + (1000 + _mseed),
+      name: name, lv: lv, ch: sc.ch, type: type,
+      hp: s.hp, atk: s.atk, def: s.def, size: size,
+      expR: Math.floor(s.hp * 0.05 * mult),
+      goldR: Math.floor(s.hp * 0.06 * mult),
+      isBoss: (type === 'boss'), isElite: (type === 'elite')
+    };
+    MONSTERS.push(m);
+    sc._m.push(m.id);
+  }
+
+  /* 遍历 AREA_SPECS：为每个场景生成怪物对象并记录到 sc._m */
+  AREA_SPECS.forEach(function (sc) {
+    sc._m = [];
+    if (!sc.monsters || !sc.monsters.length) return;
+    var midLv = Math.floor((sc.lvMin + sc.lvMax) / 2);
+    // 普通怪：策划 monsters 中不在 elite/boss 名单者，取等级区间中位
+    sc.monsters.forEach(function (name) {
+      if (sc.elite && sc.elite.indexOf(name) !== -1) return;
+      if (sc.boss && sc.boss.indexOf(name) !== -1) return;
+      _addM(sc, midLv, name, 'grunt');
+    });
+    // 精英怪：等级取 lvMax-1
+    (sc.elite || []).forEach(function (name) {
+      _addM(sc, Math.max(1, sc.lvMax - 1), name, 'elite');
+    });
+    // Boss：等级取 lvMax
+    (sc.boss || []).forEach(function (name) {
+      _addM(sc, sc.lvMax, name, 'boss');
+    });
+  });
+
+  /* ============================================================
+   * 关卡进度表（前 3 章 · P0 兼容保留）
+   * 旧 m101.. 引用已由世界怪物表取代，但 state 用 find 查找不抛错，
+   * 故保留本表以兼容已有存档与章节跳转逻辑。
+   * ============================================================ */
   var STAGES = [
     {
       id: 1, ch: 1, name: '乱葬岗', desc: '新生剑修的第一战场，遍地腐尸野犬。',
@@ -294,9 +412,75 @@ var CONFIG = (function () {
   /* ---- 存档配置 ---- */
   var SAVE = {
     key: 'honghuang_p0_save',
-    version: 1,
+    version: 2,
     autoSaveSec: 30
   };
+
+  /* ============================================================
+   * MAPAREAS 生成（B 方案 · 三界大世界总览）
+   * 以 AREA_SPECS 为唯一数据源，自动组合每个场景的邻接关系：
+   *   - 主城：用 _TOWN_LINKS 主城链生成双向传送门，9 主城串成一线
+   *   - 野外/洞穴/魂境：exits 连回所属主城（保证 BFS 全连通）
+   * pos: [x,y] 世界总览图标点坐标（0-100 相对，供 UI 标点）
+   * ---
+   * （说明）type 取值：
+   *   town  城镇安全区（无战斗） / field 野外 / cave 洞穴 / ghost 魂境
+   * ============================================================ */
+  var _TOWN_LINKS = [
+    ['qingshi', 'luoxiacheng'],
+    ['luoxiacheng', 'hanyuguan'],
+    ['hanyuguan', 'yanyud'],
+    ['yanyud', 'xuandug'],
+    ['xuandug', 'youmingdu'],
+    ['youmingdu', 'chiyouzhong'],
+    ['chiyouzhong', 'honghuangjianzhong'],
+    ['honghuangjianzhong', 'lingxiaojing']
+  ];
+  var _CITYNAME = {
+    qingshi: '青石镇', luoxiacheng: '落霞城', hanyuguan: '寒玉关',
+    yanyud: '烟雨渡', xuandug: '玄都观', youmingdu: '幽冥渡',
+    chiyouzhong: '蚩尤冢', honghuangjianzhong: '洪荒剑冢', lingxiaojing: '凌霄境'
+  };
+  /* 每个主城所辖的野外/洞穴/魂境（保证主城能通往所属场景，实现全连通） */
+  var _AREA_NAME = {};
+  AREA_SPECS.forEach(function (a) { _AREA_NAME[a.id] = a.name; });
+  var _cityKids = {};
+  AREA_SPECS.forEach(function (a) {
+    if (a.type !== 'town') {
+      if (!_cityKids[a.city]) _cityKids[a.city] = [];
+      _cityKids[a.city].push(a.id);
+    }
+  });
+
+  var MAPAREAS = AREA_SPECS.map(function (a) {
+    var area = {
+      id: a.id, name: a.name, type: a.type, region: a.region,
+      chapter: a.ch, city: a.city,
+      lvMin: a.lvMin, lvMax: a.lvMax, unlockLv: a.unlock,
+      desc: a.desc, pos: a.pos,
+      monsters: (a._m || []).slice(),
+      spawnRate: (a.type === 'town') ? 0 : 0.22,
+      exploreGoal: (a.type === 'town') ? 0 : (a._m || []).length,
+      boss: (a.boss || []).slice()
+    };
+    // exits
+    if (a.type === 'town') {
+      area.exits = [];
+      _TOWN_LINKS.forEach(function (link) {
+        var i = link.indexOf(a.id);
+        if (i !== -1) {
+          var to = link[1 - i];
+          area.exits.push({ id: 'to_' + to, label: '传送·' + _CITYNAME[to], to: to });
+        }
+      });
+      (_cityKids[a.id] || []).forEach(function (kid) {
+        area.exits.push({ id: 'to_' + kid, label: '往·' + _AREA_NAME[kid], to: kid });
+      });
+    } else {
+      area.exits = [{ id: 'to_' + a.city, label: '返回·' + _CITYNAME[a.city], to: a.city }];
+    }
+    return area;
+  });
 
   /* ---- 导出 ---- */
   return {
@@ -318,6 +502,8 @@ var CONFIG = (function () {
     AFFIX_TIER: AFFIX_TIER,
     AFFIX_POOL: AFFIX_POOL,
     AFFIX_STAT_LABEL: AFFIX_STAT_LABEL,
-    REFINE: REFINE
+    REFINE: REFINE,
+    AREA_SPECS: AREA_SPECS,
+    MAPAREAS: MAPAREAS
   };
 })();

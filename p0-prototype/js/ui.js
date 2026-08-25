@@ -143,54 +143,146 @@ var UI = (function () {
     });
   }
 
-  /* ============ 关卡列表 ============ */
-  function updateStages() {
+  /* ============ 三界大世界总览图 ============ */
+  function areaTypeTxt(a) {
+    if (a.type === 'town') return '城镇';
+    if (a.type === 'cave') return '洞穴';
+    if (a.type === 'ghost') return '魂境';
+    return '野外';
+  }
+
+  /* ---- 总览图主体：SVG 底色（界名+连通边）+ HTML 标点 ---- */
+  function renderWorldMap() {
     var s = State.get();
-    var d = State.getDerived();
-    var power = d ? d.power : 0;
+    var m = s.map;
+    var areas = CONFIG.MAPAREAS;
+    var bg = document.getElementById('worldmap-bg');
+    var nodesEl = document.getElementById('worldmap-nodes');
+    if (!bg || !nodesEl) return;
 
-    var html = CONFIG.STAGES.map(function (stage) {
-      var unlocked = State.isStageUnlocked(stage.id);
-      var active = s.currentStage === stage.id;
-      var monsters = stage.monsterIds.map(function (id) {
-        return CONFIG.MONSTERS.find(function (m) { return m.id === id; });
-      }).filter(Boolean);
-      var lvRange = monsters.length > 0
-        ? Math.min.apply(null, monsters.map(function (m) { return m.lv; })) + '-' + Math.max.apply(null, monsters.map(function (m) { return m.lv; }))
-        : '?';
-      var prog = s.stageProgress[stage.id] || { kills: 0, bossKilled: false };
-
-      var cls = 'stage-card' + (active ? ' active' : '') + (unlocked ? '' : ' locked');
-      // 未解锁原因：等级 / 前置Boss / 战力 三项具体缺口
-      var need = [];
-      if (!unlocked) {
-        if (s.player.level < stage.unlockLv) need.push('Lv.' + stage.unlockLv);
-        if (stage.id > 1) {
-          var prevStage = CONFIG.STAGES.find(function (x) { return x.id === stage.id - 1; });
-          if (prevStage && !(s.stageProgress[prevStage.id] || {}).bossKilled) need.push('通关前置Boss');
-        }
-        if (stage.powerReq > 0) need.push('战力' + stage.powerReq);
-      }
-      return '<div class="' + cls + '" data-stage="' + stage.id + '">' +
-        '<div class="stage-name">第' + stage.ch + '章 · ' + stage.name + (active ? ' ◉' : '') + '</div>' +
-        '<div class="stage-desc">' + stage.desc + '</div>' +
-        '<div class="stage-info">怪物等级 ' + lvRange + ' · 击杀 ' + prog.kills + (prog.bossKilled ? ' · Boss已击杀' : '') + '</div>' +
-        (unlocked
-          ? (stage.powerReq > 0 ? '<div class="stage-info">战力需求 ' + stage.powerReq + '</div>' : '')
-          : '<div class="stage-info" style="color:var(--red)">未解锁（需 ' + need.join(' + ') + '）</div>') +
-      '</div>';
-    }).join('');
-    document.getElementById('stage-list').innerHTML = html;
-
-    document.querySelectorAll('.stage-card').forEach(function (el) {
-      el.addEventListener('click', function () {
-        var id = parseInt(this.dataset.stage);
-        if (!State.isStageUnlocked(id)) return;
-        State.get().currentStage = id;
-        Bus.emit('stageChange', id);
-        refresh();
+    // --- SVG 底色：界名 + 连通边 ---
+    var svg = '';
+    var zones = {};
+    areas.forEach(function (a) { zones[a.region] = zones[a.region] || []; zones[a.region].push(a); });
+    Object.keys(zones).forEach(function (region) {
+      var list = zones[region];
+      var ax = 0, ay = 0;
+      list.forEach(function (a) { ax += a.pos[0]; ay += a.pos[1]; });
+      ax /= list.length; ay /= list.length;
+      svg += '<text class="zlabel" x="' + (ax / 100 * 1000).toFixed(0) + '" y="' + (ay / 100 * 700).toFixed(0) + '">' + region + '</text>';
+    });
+    var drawn = {};
+    areas.forEach(function (a) {
+      (a.exits || []).forEach(function (ex) {
+        var b = WorldMap.getArea(ex.to);
+        if (!b) return;
+        var key = a.id < ex.to ? a.id + '|' + ex.to : ex.to + '|' + a.id;
+        if (drawn[key]) return;
+        drawn[key] = true;
+        var isTownLink = (a.type === 'town' && b.type === 'town');
+        svg += '<line class="conn' + (isTownLink ? ' town' : '') + '" x1="' + (a.pos[0] / 100 * 1000).toFixed(1) + '" y1="' + (a.pos[1] / 100 * 700).toFixed(1) + '" x2="' + (b.pos[0] / 100 * 1000).toFixed(1) + '" y2="' + (b.pos[1] / 100 * 700).toFixed(1) + '"/>';
       });
     });
+    bg.innerHTML = svg;
+
+    // --- HTML 标点 ---
+    var parts = areas.map(function (a) {
+      var cur = a.id === m.areaId;
+      var reached = WorldMap.hasReached(a.id);
+      var locked = s.player.level < (a.unlockLv || 0);
+      var isTown = a.type === 'town';
+      var icon = isTown ? '城' : (a.type === 'cave' ? '洞' : (a.type === 'ghost' ? '魂' : '野'));
+      var cls = 'wm-node ' + a.type;
+      if (cur) cls += ' cur';
+      else if (locked) cls += ' locked';
+      else if (!reached) cls += ' unreached';
+      var prog = WorldMap.getExploreProgress(a.id);
+      var title = a.name + ' · ' + a.region + '（' + areaTypeTxt(a) + '）\n'
+        + 'Lv' + a.lvMin + '-' + a.lvMax
+        + (a.boss && a.boss.length ? ' [BOSS]' : '')
+        + (locked ? '\n🔒 需 Lv.' + a.unlockLv + ' 解锁' : '')
+        + '\n' + a.desc
+        + (isTown ? '' : '\n探索 ' + Math.floor(prog * 100) + '%');
+      return '<div class="' + cls + '" data-id="' + a.id + '" title="' + title.replace(/"/g, '&quot;') + '">'
+        + '<span class="dot">' + icon + '</span>'
+        + (locked ? '<span class="lock">\uD83D\uDD12</span>' : '')
+        + (a.boss && a.boss.length ? '<span class="boss">B</span>' : '')
+        + '<span class="cap">' + a.name + '</span>'
+        + '</div>';
+    });
+    nodesEl.innerHTML = parts.join('');
+
+    Array.prototype.forEach.call(nodesEl.querySelectorAll('.wm-node'), function (node) {
+      var a = WorldMap.getArea(node.dataset.id);
+      if (!a) return;
+      node.style.left = (a.pos[0]) + '%';
+      node.style.top = (a.pos[1]) + '%';
+      node.addEventListener('click', function () { onWorldNodeClick(a.id); });
+    });
+  }
+
+  /* ---- 点击总览图标点：直达或提示解锁 ---- */
+  function onWorldNodeClick(id) {
+    var s = State.get();
+    if (id === s.map.areaId) return;
+    var a = WorldMap.getArea(id);
+    if (!a) return;
+    if (s.player.level < (a.unlockLv || 0)) {
+      Combat.getLog().unshift({ time: Date.now(), text: '「' + a.name + '」需 Lv.' + a.unlockLv + ' 才可前往' });
+      refresh();
+      return;
+    }
+    if (WorldMap.travelTo(id)) {
+      updateMap();
+      updateIdleStatus();
+    }
+  }
+
+  /* ---- 图例 ---- */
+  function renderLegend() {
+    var el = document.getElementById('wm-legend');
+    if (!el) return;
+    var areas = CONFIG.MAPAREAS;
+    var zones = {};
+    areas.forEach(function (a) { zones[a.region] = (zones[a.region] || 0) + 1; });
+    var lg =
+      '<span class="lg"><span class="kw" style="border-color:var(--gold)"></span>城镇</span>' +
+      '<span class="lg"><span class="kw" style="border-color:var(--green)"></span>野外</span>' +
+      '<span class="lg"><span class="kw" style="border-color:var(--blue)"></span>洞穴</span>' +
+      '<span class="lg"><span class="kw" style="border-color:#c486ff"></span>魂境</span>' +
+      '<span class="lg"><span class="kw" style="background:var(--accent);border-color:#fff"></span>当前</span>' +
+      '<span class="lg">\uD83D\uDD12 未解锁</span><span class="lg">B BOSS</span>';
+    Object.keys(zones).forEach(function (r) {
+      lg += '<span class="lg">· ' + r + '×' + zones[r] + '</span>';
+    });
+    el.innerHTML = lg;
+  }
+
+  /* ---- 大地图面板刷新 ---- */
+  function updateMap() {
+    var s = State.get();
+    var m = s.map;
+    var area = State.getCurrentArea() || CONFIG.MAPAREAS[0];
+
+    document.getElementById('map-title').textContent = area.name + ' · ' + area.region;
+    document.getElementById('map-pos').textContent =
+      areaTypeTxt(area) + (area.type === 'town' ? '安全区' : '') + ' · Lv' + area.lvMin + '-' + area.lvMax;
+
+    renderWorldMap();
+
+    var travelEl = document.getElementById('map-travel');
+    if (m.travel && m.moving && m.travel.segments && m.travel.segments.length) {
+      var target = WorldMap.getArea(m.travel.to);
+      travelEl.textContent = '▶ 正在前往「' + (target ? target.name : m.travel.to) + '」 · 途经 ' + m.travel.segments.length + ' 站';
+      travelEl.style.color = 'var(--blue)';
+    } else {
+      travelEl.textContent = area.type === 'town'
+        ? '点击上方总览标点，自动寻路前往任意场景'
+        : '停留于此 · 点击总览标点前往他处';
+      travelEl.style.color = 'var(--muted)';
+    }
+
+    renderLegend();
   }
 
   /* ============ 战斗日志 ============ */
@@ -437,21 +529,26 @@ var UI = (function () {
   function updateIdleStatus() {
     var s = State.get();
     var running = Idle.isRunning();
-    var el = document.getElementById('idle-state');
+    var el = document.getElementById('map-loc');
     var btn = document.getElementById('btn-toggle-idle');
-    if (!s.currentStage) {
-      el.textContent = '请先选择关卡';
-      el.style.color = 'var(--muted)';
-      btn.textContent = '选择关卡';
-      btn.disabled = true;
-    } else if (running) {
-      el.textContent = '挂机中 · ' + CONFIG.STAGES.find(function (x) { return x.id === s.currentStage; }).name;
+    var stopBtn = document.getElementById('btn-stop-move');
+    var area = State.getCurrentArea() || CONFIG.MAPAREAS[0];
+    var isField = area.type !== 'town' && !!area.monsters;
+    if (stopBtn) { stopBtn.style.display = s.map.moving ? '' : 'none'; }
+    if (running) {
       el.style.color = 'var(--green)';
+      if (s.map.moving) {
+        el.textContent = '行走中 · ' + area.name;
+      } else if (isField) {
+        el.textContent = '清扫「' + area.name + '」';
+      } else {
+        el.textContent = '在「' + area.name + '」休整';
+      }
       btn.textContent = '暂停';
       btn.disabled = false;
     } else {
-      el.textContent = '已暂停';
       el.style.color = 'var(--muted)';
+      el.textContent = '已暂停';
       btn.textContent = '开始挂机';
       btn.disabled = false;
     }
@@ -469,7 +566,7 @@ var UI = (function () {
     updateTopBar();
     updateStats();
     updateEquipSlots();
-    updateStages();
+    updateMap();
     updateIdleStatus();
     updateInventory();
     updateForgePanel();
@@ -518,6 +615,16 @@ var UI = (function () {
       }
       updateIdleStatus();
     });
+
+    // 停止移动
+    var stopMoveBtn = document.getElementById('btn-stop-move');
+    if (stopMoveBtn) {
+      stopMoveBtn.addEventListener('click', function () {
+        WorldMap.stop();
+        updateMap();
+        updateIdleStatus();
+      });
+    }
 
     // Tab 切换
     document.querySelectorAll('.tab').forEach(function (tab) {
@@ -591,7 +698,10 @@ var UI = (function () {
     Bus.on('itemAdded', function () { updateInventory(); updateForgePanel(); });
     Bus.on('equipChange', function () { updateEquipSlots(); updateStats(); updateTopBar(); });
     Bus.on('forgeResult', function (r) { updateForgePanel(); });
-    Bus.on('stageChange', function () { updateStages(); updateIdleStatus(); });
+    Bus.on('mapTravel', function () { updateMap(); updateIdleStatus(); });
+    Bus.on('mapMove', function () { updateMap(); });
+    Bus.on('mapChange', function () { updateMap(); updateIdleStatus(); });
+    Bus.on('mapStop', function () { updateMap(); updateIdleStatus(); });
   }
 
   return {

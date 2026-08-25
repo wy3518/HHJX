@@ -150,14 +150,17 @@ var Combat = (function () {
    */
   function executeRound() {
     var s = State.get();
-    if (!s.player.professionId || !s.currentStage) return null;
+    if (!s.player.professionId || !s.map.areaId) return null;
 
     var derived = State.getDerived();
     if (!derived) return null;
 
-    // 锁定目标：没有当前目标（或上一只已击杀）时，从关卡怪物池锁一只满血怪
-    var monsters = State.getStageMonsters();
-    if (!monsters || monsters.length === 0) return null;
+    // 锁定目标：没有当前目标（或上一只已击杀）时，从当前区域怪物池锁一只满血怪
+    var monsters = State.getMapMonsters();
+    if (!monsters || monsters.length === 0) {
+      // 城镇安全区无怪，仅结算回血，不产生战斗
+      return null;
+    }
 
     if (!currentTarget || !currentTarget.monster) {
       var mIdx = Math.floor(rng() * monsters.length);

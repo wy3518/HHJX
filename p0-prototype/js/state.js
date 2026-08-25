@@ -59,8 +59,16 @@ var State = (function () {
         stone: 0               // 洗练石
       },
 
+      // 当前地图
+      map: {
+        areaId: 'qingshi',        // 当前所处区域（青石镇起步）
+        x: 11, y: 10,             // 角色在当前场景的坐标
+        routeExitId: null,        // 正在寻路前往的传送门 id
+        routes: {},               // 历史停留(用于探索可视)
+        explored: {}              // {areaId: {killed:{monsterId:true}}}
+      },
       // 当前关卡
-      currentStage: null,      // 未选关卡时为 null
+      currentStage: null,      // (遗留兼容)未选关卡时为 null
       stageProgress: {},       // {stageId: {kills:0, bossKilled:false}}
 
       // 背包
@@ -95,6 +103,12 @@ var State = (function () {
     if (!state) state = createDefault();
     // 兼容旧存档：缺失字段兜底
     if (!state.gems) state.gems = [];
+    if (!state.map) {
+      // 旧存档无地图字段：默认落在青石镇
+      state.map = { areaId: 'qingshi', x: 11, y: 10, routeExitId: null, routes: {}, explored: {} };
+    }
+    if (state.map && !state.map.explored) state.map.explored = {};
+    if (state.map && !state.map.routes) state.map.routes = {};
     return state;
   }
 
@@ -318,7 +332,23 @@ var State = (function () {
     return d.power >= stage.powerReq;
   }
 
-  /* ---- 记录击杀 ---- */
+  /* ---- 获取当前地图区域 ---- */
+  function getCurrentArea() {
+    var s = get();
+    return CONFIG.MAPAREAS.find(function (a) { return a.id === s.map.areaId; });
+  }
+
+  /* ---- 获取当前区域怪物池（野外才有怪，城镇返回空） ---- */
+  function getMapMonsters() {
+    var s = get();
+    var area = getCurrentArea();
+    if (!area || !area.monsters) return [];
+    return area.monsters.map(function (id) {
+      return CONFIG.MONSTERS.find(function (m) { return m.id === id; });
+    }).filter(Boolean);
+  }
+
+  /* ---- 记录击杀：累计击杀统计 + 当前区域的探索度 ---- */
   function recordKill(monster) {
     var s = get();
     var prog = s.stageProgress[s.currentStage];
@@ -328,6 +358,10 @@ var State = (function () {
     }
     prog.kills++;
     if (monster.isBoss) prog.bossKilled = true;
+    // 探索度：记录本区域击杀过的怪物种类
+    var area = getCurrentArea();
+    s.map.explored[s.map.areaId] = s.map.explored[s.map.areaId] || { killed: {} };
+    s.map.explored[s.map.areaId].killed[monster.id] = true;
     s.stats.totalKills++;
   }
 
@@ -395,6 +429,8 @@ var State = (function () {
     spendGold: spendGold,
     addStone: addStone,
     spendStone: spendStone,
+    getCurrentArea: getCurrentArea,
+    getMapMonsters: getMapMonsters,
     getStageMonsters: getStageMonsters,
     isStageUnlocked: isStageUnlocked,
     isStagePowerOk: isStagePowerOk,
