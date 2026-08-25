@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>洪荒剑仙 P0 原型</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- 角色创建遮罩 -->
+<div id="creation-screen" class="overlay">
+  <div class="creation-box">
+    <h1>洪荒剑仙</h1>
+    <p class="subtitle">选择出身，踏入修仙之路</p>
+    <div id="profession-list" class="prof-grid"></div>
+    <div id="creation-confirm" style="display:none">
+      <button id="btn-confirm-prof" class="btn-primary">确认出身</button>
+    </div>
+  </div>
+</div>
+
+<!-- 离线结算遮罩 -->
+<div id="offline-screen" class="overlay" style="display:none">
+  <div class="creation-box">
+    <h2>出关结算</h2>
+    <p id="offline-text"></p>
+    <button id="btn-offline-ok" class="btn-primary">继续修炼</button>
+  </div>
+</div>
+
+<!-- 主界面 -->
+<div id="game" style="display:none">
+
+  <!-- 顶栏 -->
+  <header class="topbar">
+    <div class="player-info">
+      <span id="player-name" class="player-name">无名剑修</span>
+      <span id="player-level" class="player-level">Lv.1</span>
+      <span id="player-prof" class="player-prof"></span>
+    </div>
+    <div class="exp-bar-wrap">
+      <div class="exp-bar-track">
+        <div id="exp-bar" class="exp-bar-fill" style="width:0%"></div>
+      </div>
+      <span id="exp-text" class="exp-text">0 / 0</span>
+    </div>
+    <div class="currencies">
+      <span class="currency" title="铜钱">💰<span id="gold">0</span></span>
+      <span class="currency" title="天工值">🔨<span id="blessing">0</span>/100</span>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="main-layout">
+
+    <!-- 左栏：角色面板 -->
+    <aside class="panel left-panel">
+      <h3>角色属性</h3>
+      <div id="stat-block" class="stat-block"></div>
+
+      <h3 style="margin-top:16px">装备栏</h3>
+      <div id="equip-slots" class="equip-grid"></div>
+
+      <h3 style="margin-top:16px">战力</h3>
+      <div id="power-display" class="power-display">--</div>
+    </aside>
+
+    <!-- 中栏：挂机 + 战斗日志 -->
+    <section class="panel center-panel">
+      <h3>关卡选择</h3>
+      <div id="stage-list" class="stage-list"></div>
+
+      <div class="idle-status">
+        <span id="idle-state">未开始挂机</span>
+        <button id="btn-toggle-idle" class="btn-sm">开始挂机</button>
+      </div>
+
+      <h3 style="margin-top:16px">战斗日志</h3>
+      <div id="combat-log" class="combat-log"></div>
+    </section>
+
+    <!-- 右栏：背包 + 强化 -->
+    <aside class="panel right-panel">
+      <div class="tab-bar">
+        <button class="tab active" data-tab="inv">背包</button>
+        <button class="tab" data-tab="forge">强化</button>
+      </div>
+
+      <div id="tab-inv" class="tab-content active">
+        <div class="inv-info">
+          <span id="inv-count">0/30</span>
+        </div>
+        <div id="inventory" class="inventory-grid"></div>
+      </div>
+
+      <div id="tab-forge" class="tab-content" style="display:none">
+        <p class="hint">选择一件装备进行强化</p>
+        <div id="forge-list" class="forge-list"></div>
+        <div id="forge-detail" class="forge-detail" style="display:none">
+          <div id="forge-item-info"></div>
+          <div class="forge-stats">
+            <span>当前强化: <strong id="forge-current">+0</strong></span>
+            <span>成功率: <strong id="forge-rate">--</strong></span>
+            <span>消耗: <strong id="forge-cost">--</strong></span>
+          </div>
+          <button id="btn-enhance" class="btn-primary">强化</button>
+
+          <div class="forge-gem-hd">✦ 打孔 / 镶嵌</div>
+          <div class="forge-sockets">
+            <span>孔: <strong id="forge-sockets">0/0</strong></span>
+            <button id="btn-socket" class="btn-sm">打孔（2000铜起）</button>
+          </div>
+          <div id="forge-gems"></div>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- 底栏 -->
+  <footer class="bottombar">
+    <span id="play-time">在线 0 分钟</span>
+    <button id="btn-save" class="btn-sm">手动保存</button>
+    <button id="btn-export" class="btn-sm">导出存档</button>
+    <button id="btn-reset" class="btn-sm btn-danger">重置</button>
+  </footer>
+
+</div>
+
+<!-- 脚本引用顺序：数据 -> 总线 -> 状态 -> 系统 -> UI -> 入口 -->
+<script src="js/data.js?v=2"></script>
+<script src="js/eventbus.js?v=2"></script>
+<script src="js/state.js?v=2"></script>
+<script src="js/combat.js?v=2"></script>
+<script src="js/drops.js?v=2"></script>
+<script src="js/forge.js?v=2"></script>
+<script src="js/idle.js?v=2"></script>
+<script src="js/save.js?v=4"></script>
+<script src="js/ui.js?v=4"></script>
+<script src="js/app.js?v=4"></script>
+</body>
+</html>

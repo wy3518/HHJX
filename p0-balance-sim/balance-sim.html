@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《洪荒剑仙》P0 平衡冒烟报告</title>
+<style>
+  @font-face { font-family:'WorkSans'; src:url('../p0-prototype-checklist/_shared/fonts/WorkSans-Regular.ttf') format('truetype'); font-weight:400; }
+  @font-face { font-family:'WorkSans'; src:url('../p0-prototype-checklist/_shared/fonts/WorkSans-Bold.ttf') format('truetype'); font-weight:700; }
+  @font-face { font-family:'CrimsonPro'; src:url('../p0-prototype-checklist/_shared/fonts/CrimsonPro-Regular.ttf') format('truetype'); font-weight:400; }
+  @font-face { font-family:'CrimsonPro'; src:url('../p0-prototype-checklist/_shared/fonts/CrimsonPro-Bold.ttf') format('truetype'); font-weight:700; }
+  @font-face { font-family:'JetBrainsMono'; src:url('../p0-prototype-checklist/_shared/fonts/JetBrainsMono-Regular.ttf') format('truetype'); font-weight:400; }
+
+  :root{
+    --bg:#f6f4ef; --bg2:#ffffff; --ink:#223037; --muted:#5d6d73; --rule:#e3e1da;
+    --accent:#2f7d6b; --accent2:#c1553a; --gold:#b8860b;
+    --ok:#2f7d6b; --warn:#c1553a;
+    --accent-soft:rgba(47,125,107,0.10); --accent2-soft:rgba(193,85,58,0.10);
+    --shadow:0 1px 2px rgba(34,48,55,0.06),0 8px 28px rgba(34,48,55,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:'WorkSans','PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+    font-size:15px; line-height:1.7;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 8% -5%, rgba(47,125,107,0.08), transparent 60%),
+      radial-gradient(ellipse 55% 40% at 100% 0%, rgba(193,85,58,0.07), transparent 55%);}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 22px;}
+  header.cover{padding:60px 0 30px;}
+  .kicker{font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--accent); font-weight:700; margin:0 0 14px;}
+  header.cover h1{font-family:'CrimsonPro','Songti SC','STSong',serif; font-size:42px; line-height:1.15; margin:0 0 16px; font-weight:700;}
+  header.cover .sub{font-size:18px; color:var(--muted); max-width:720px; margin:0 0 24px; line-height:1.6;}
+  .meta-tags{display:flex; flex-wrap:wrap; gap:10px;}
+  .tag{font-size:13px; font-weight:600; padding:5px 12px; border-radius:99px; border:1px solid var(--rule); background:var(--bg2);}
+  .tag.goal{border-color:var(--accent); color:var(--accent); background:var(--accent-soft);}
+  .tag.warn{border-color:var(--accent2); color:var(--accent2); background:var(--accent2-soft);}
+
+  main{padding-bottom:50px;}
+  section.card{background:rgba(255,255,255,0.74); backdrop-filter:blur(10px); border:1px solid rgba(47,125,107,0.12); border-radius:14px; box-shadow:var(--shadow); padding:30px 30px 26px; margin-bottom:26px;}
+  h2{font-family:'CrimsonPro','Songti SC','STSong',serif; font-size:24px; font-weight:700; margin:0 0 4px;}
+  .sec-num{display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-family:'WorkSans'; font-weight:700; font-size:14px; margin-right:12px; vertical-align:2px;}
+  .sec-desc{color:var(--muted); font-size:15px; margin:0 0 20px;}
+  h3{font-size:16px; font-weight:700; margin:24px 0 12px;}
+  p{margin:0 0 14px;}
+  strong{font-weight:700;}
+  code,.formula{font-family:'JetBrainsMono','Consolas',monospace; font-size:0.9em; background:var(--accent-soft); color:var(--accent); padding:2px 6px; border-radius:5px;}
+  mark.key{background:none; color:var(--accent); font-weight:700;}
+
+  /* 判定卡 */
+  .verdict-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px;}
+  .verdict{background:var(--bg2); border:1px solid var(--rule); border-radius:12px; padding:16px 18px;}
+  .verdict .v-title{font-size:13px; font-weight:600; color:var(--muted); letter-spacing:.04em; margin-bottom:8px;}
+  .verdict .v-status{font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+  .verdict .v-detail{font-size:13px; color:var(--muted);}
+  .pass{color:var(--ok);} .fail{color:var(--warn);}
+  .badge{font-size:12px; font-weight:700; padding:2px 9px; border-radius:99px; color:#fff;}
+  .badge.pass{background:var(--ok);} .badge.fail{background:var(--warn);}
+
+  /* 统计行 */
+  .stat-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:18px 0;}
+  .stat-box{background:var(--bg2); border:1px solid var(--rule); border-radius:10px; padding:12px 14px; text-align:center;}
+  .stat-box .s-val{font-family:'CrimsonPro',serif; font-size:26px; font-weight:700;}
+  .stat-box .s-lbl{font-size:12.5px; color:var(--muted); margin-top:2px;}
+
+  .chart-figure{margin:20px 0; background:var(--bg2); border:1px solid var(--rule); border-radius:12px; padding:16px;}
+  .chart-figure figcaption{font-weight:600; color:var(--ink); text-align:center; font-size:14px; margin-bottom:8px;}
+
+  /* 表格 */
+  .table-wrap{overflow-x:auto; margin:16px 0; border:1px solid var(--rule); border-radius:10px;}
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  thead th{background:linear-gradient(135deg,rgba(47,125,107,0.10),rgba(193,85,58,0.08)); text-align:left; font-weight:700; padding:10px 12px; border-bottom:2px solid var(--accent); white-space:nowrap;}
+  tbody td{padding:9px 12px; border-bottom:1px solid var(--rule);}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:nth-child(even){background:rgba(47,125,107,0.03);}
+
+  .callout{border-left:4px solid var(--accent2); background:var(--accent2-soft); border-radius:0 10px 10px 0; padding:14px 18px; margin:18px 0;}
+  .co-title{font-weight:700; color:var(--accent2); font-size:13px; letter-spacing:.04em; margin-bottom:6px; text-transform:uppercase;}
+  .callout p{margin:0; font-size:14px;}
+  .callout.green{border-color:var(--accent); background:var(--accent-soft);}
+  .callout.green .co-title{color:var(--accent);}
+
+  ul.clean{margin:0; padding-left:0; list-style:none;}
+  ul.clean li{position:relative; padding-left:24px; margin-bottom:9px;}
+  ul.clean li::before{content:''; position:absolute; left:4px; top:0.62em; width:8px; height:8px; border-radius:2px; background:linear-gradient(135deg,var(--accent),var(--accent2));}
+
+  #exp-bar,.bar{height:16px; border-radius:8px; background:#e9e7e1; overflow:hidden; margin:4px 0 12px;}
+  #exp-bar .fill{height:100%; border-radius:8px; background:linear-gradient(90deg,var(--accent),#4aa98f); transition:width .3s;}
+
+  .ctrl{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:4px 0 8px;}
+  select,.btn{font-family:inherit; font-size:14px; padding:6px 12px; border-radius:8px; border:1px solid var(--rule); background:var(--bg2); color:var(--ink);}
+  .btn{font-weight:600; cursor:pointer; border-color:var(--accent); color:var(--accent);}
+  .btn:hover{background:var(--accent-soft);}
+  .run-note{font-size:12.5px; color:var(--muted);}
+
+  footer{border-top:1px solid var(--rule); padding:30px 0 48px; color:var(--muted);}
+  footer .notes{font-size:13.5px; line-height:1.7;}
+
+  @media (max-width:600px){ header.cover h1{font-size:30px;} section.card{padding:24px 18px;} }
+  @media print{ section.card{box-shadow:none;border:none;} .chart-figure{page-break-inside:avoid;} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="cover">
+    <p class="kicker">P0 / Balance Smoke Test</p>
+    <h1>《洪荒剑仙》P0 平衡冒烟报告</h1>
+    <p class="sub">复用 <code>data.js</code> 真实配置，全量模拟 1→99 级纯挂机闭环，对照 P0 清单第 8 章发射前检查项逐项验证——数值闭环是否有断点、90 天理论是否成立、强化保底与掉落品味是否达标。</p>
+    <div class="meta-tags">
+      <span class="tag goal">数值闭环</span>
+      <span class="tag goal">90 天理论</span>
+      <span class="tag">强化 +1~+15</span>
+      <span class="tag">掉落品味</span>
+      <span class="tag warn">口径 = data.js CONFIG</span>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- 判定总览 -->
+    <section class="card" id="s0">
+      <h2><span class="sec-num">01</span>发射前判定总览</h2>
+      <p class="sec-desc">对应 P0 清单第 8 章检查项 2–5 自动生成，全部通过才算 P0 数值收口。</p>
+      <div class="verdict-grid" id="verdict-grid"></div>
+    </section>
+
+    <!-- 主线仿真 -->
+    <section class="card" id="s1">
+      <h2><span class="sec-num">02</span>主线挂机仿真（1→99 级）</h2>
+      <p class="sec-desc">模拟一名中游玩家"抓到就穿、挂哪刷哪"，基于真实伤害公式与怪物表逐级推进。</p>
+      <div class="ctrl">
+        <label>出身：</label>
+        <select id="prof-sel"></select>
+        <button class="btn" id="btn-run">重新仿真</button>
+        <span class="run-note">新手游标顺序：剑修 / 体修 / 丹修 / 御灵</span>
+      </div>
+      <div class="stat-row" id="main-stats"></div>
+      <div class="chart-figure">
+        <figcaption>图 2-1 等级-天数推进轴（横轴：达到各级所需天数）</figcaption>
+        <div id="chart-main" style="width:100%;min-height:360px"></div>
+      </div>
+      <div class="chart-figure">
+        <figcaption>图 2-2 单级所需经验曲线（对比 90 天标定与基础产出口径）</figcaption>
+        <div id="chart-exp" style="width:100%;min-height:320px"></div>
+      </div>
+      <div id="main-issues"></div>
+    </section>
+
+    <!-- 强化期望 -->
+    <section class="card" id="s2">
+      <h2><span class="sec-num">03</span>强化期望与保底</h2>
+      <p class="sec-desc" id="forge-sub">蒙特卡洛模拟一件装备 +1→+15，验证 +5 / +10 / +15 三档保底与天工值满级必成。</p>
+      <div class="chart-figure">
+        <figcaption>图 3-1 各强化档位到达的平均/中位尝试次数</figcaption>
+        <div id="chart-forge" style="width:100%;min-height:320px"></div>
+      </div>
+      <div class="table-wrap" id="forge-table"></div>
+    </section>
+
+    <!-- 掉落品味 -->
+    <section class="card" id="s3">
+      <h2><span class="sec-num">04</span>掉落品味分布</h2>
+      <p class="sec-desc">按 grunt / elite / boss 三类怪蒙特卡洛抽样品质比例，验证绝品以上稀缺、神话仅 Boss 档 0.5%。</p>
+      <div class="chart-figure">
+        <figcaption>图 4-1 各怪类型品质占比（按怪物类型独立抽样）</figcaption>
+        <div id="chart-drop" style="width:100%;min-height:340px"></div>
+      </div>
+      <div class="table-wrap" id="drop-table"></div>
+    </section>
+
+    <!-- 断点清单 -->
+    <section class="card" id="s4">
+      <h2><span class="sec-num">05</span>数值断点与待办</h2>
+      <p class="sec-desc">仿真过程中发现的资源闭环断点，P0 后续（P1 数值精调）处理清单。</p>
+      <div id="breakdown-list"></div>
+      <div class="callout" id="breaking-callout">
+        <div class="co-title">冒烟结论</div>
+        <p>待判定。</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <h2 style="font-size:15px; letter-spacing:.12em; text-transform:uppercase;">口径与依据</h2>
+    <div class="notes">
+      本报告基于 <code>p0-prototype/js/data.js</code> 的 CONFIG 真实数值与 <code>p0-prototype</code> 战斗公式（AP²÷(AP+DP/1.5)）。经验曲线、强化成功率表（+1~+15）、掉落权重均直接引用配置，未在模拟器内重写，避免口径漂移。模拟器为确定性播种随机，结果可复现。<br>
+      对应文档：《洪荒剑仙》GDD ch6 战斗 / ch8 装备与炼化 / ch15 数值框架 / ch17 技术方案 / ch18 开发路线图；《P0 原型开发清单》第 6 章模块 10、第 8 章发射前检查项 2–5。
+    </div>
+  </footer>
+
+</div>
+
+<script src="../p0-prototype-checklist/_shared/js/echarts.min.js"></script>
+<script src="../p0-prototype/js/data.js?v=2"></script>
+<script src="js/sim.js?v=1"></script>
+<script src="js/report.js?v=1"></script>
+</body>
+</html>
