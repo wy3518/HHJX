@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>洪荒剑仙 P0 原型</title>
-<link rel="stylesheet" href="css/style.css?v=8">
+<link rel="stylesheet" href="css/style.css?v=9">
 </head>
 <body>
 
@@ -73,9 +73,19 @@
         <h3 id="map-title">青石镇</h3>
         <span id="map-pos" class="map-pos"></span>
       </div>
+      <div class="wm-controls">
+        <div class="wm-zoom">
+          <button id="btn-zoom-in" class="btn-sm wm-zoom-btn" title="放大">+</button>
+          <button id="btn-zoom-out" class="btn-sm wm-zoom-btn" title="缩小">-</button>
+          <button id="btn-zoom-reset" class="btn-sm wm-zoom-btn" title="重置">重置</button>
+        </div>
+        <div class="wm-filter" id="wm-filter"></div>
+      </div>
       <div id="worldmap" class="worldmap">
-        <svg id="worldmap-bg" class="worldmap-bg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet"></svg>
-        <div id="worldmap-nodes" class="worldmap-nodes"></div>
+        <div id="worldmap-inner" class="worldmap-inner">
+          <svg id="worldmap-bg" class="worldmap-bg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet"></svg>
+          <div id="worldmap-nodes" class="worldmap-nodes"></div>
+        </div>
       </div>
       <div id="map-travel" class="map-travel"></div>
       <div id="wm-legend" class="wm-legend"></div>
@@ -148,14 +158,14 @@
 <!-- 脚本引用顺序：数据 -> 总线 -> 状态 -> 大地图 -> 系统 -> UI -> 入口 -->
 <script src="js/data.js?v=7"></script>
 <script src="js/eventbus.js?v=3"></script>
-<script src="js/state.js?v=7"></script>
+<script src="js/state.js?v=8"></script>
 <script src="js/map.js?v=4"></script>
-<script src="js/combat.js?v=7"></script>
+<script src="js/combat.js?v=8"></script>
 <script src="js/drops.js?v=6"></script>
 <script src="js/forge.js?v=6"></script>
 <script src="js/idle.js?v=5"></script>
-<script src="js/save.js?v=6"></script>
-<script src="js/ui.js?v=9"></script>
+<script src="js/save.js?v=7"></script>
+<script src="js/ui.js?v=11"></script>
 <script src="js/app.js?v=6"></script>
 </body>
 </html>

@@ -144,6 +144,12 @@ var UI = (function () {
   }
 
   /* ============ 三界大世界总览图 ============ */
+
+  // 缩放/平移/筛选状态
+  var wmZoom = 1.0;
+  var wmPanX = 0, wmPanY = 0;
+  var wmFilter = 'all'; // 'all' 或具体 region 名
+
   function areaTypeTxt(a) {
     if (a.type === 'town') return '城镇';
     if (a.type === 'cave') return '洞穴';
@@ -160,8 +166,22 @@ var UI = (function () {
     var nodesEl = document.getElementById('worldmap-nodes');
     if (!bg || !nodesEl) return;
 
-    // --- SVG 底色：界名 + 连通边 ---
+    // --- SVG 底色：地形纹理 + 界名 + 连通边 ---
     var svg = '';
+    // SVG 颗粒滤镜定义
+    svg += '<defs>';
+    svg += '<filter id="wmGrain"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0.15 0 0 0 0 0.12 0 0 0 0 0.1 0 0 0 0.08 0"/></filter>';
+    svg += '<filter id="wmBlur"><feGaussianBlur stdDeviation="28"/></filter>';
+    svg += '</defs>';
+
+    // 各界域色调底色块（大椭圆模糊渐变）
+    var regionColors = {
+      '凡界': { r: 34, g: 38, b: 28, a: 0.55 },
+      '冥界': { r: 44, g: 22, b: 52, a: 0.6 },
+      '北荒': { r: 52, g: 40, b: 24, a: 0.5 },
+      '洪荒': { r: 52, g: 18, b: 18, a: 0.55 },
+      '仙界': { r: 18, g: 38, b: 52, a: 0.45 }
+    };
     var zones = {};
     areas.forEach(function (a) { zones[a.region] = zones[a.region] || []; zones[a.region].push(a); });
     Object.keys(zones).forEach(function (region) {
@@ -169,8 +189,29 @@ var UI = (function () {
       var ax = 0, ay = 0;
       list.forEach(function (a) { ax += a.pos[0]; ay += a.pos[1]; });
       ax /= list.length; ay /= list.length;
-      svg += '<text class="zlabel" x="' + (ax / 100 * 1000).toFixed(0) + '" y="' + (ay / 100 * 700).toFixed(0) + '">' + region + '</text>';
+      var cx = (ax / 100 * 1000).toFixed(0);
+      var cy = (ay / 100 * 700).toFixed(0);
+      var rc = regionColors[region] || regionColors['凡界'];
+      // 区域底色椭圆
+      svg += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="180" ry="130" fill="rgba(' + rc.r + ',' + rc.g + ',' + rc.b + ',' + rc.a + ')" filter="url(#wmBlur)"/>';
+      // 界名
+      svg += '<text class="zlabel" x="' + cx + '" y="' + cy + '">' + region + '</text>';
     });
+
+    // 山形剪影（点缀各地形，固定值避免每次刷新变化）
+    var peaks = [
+      [150,80,35,65], [300,120,28,55], [500,90,40,70], [700,110,30,60], [850,70,25,50],
+      [200,350,32,58], [450,380,38,68], [650,340,28,52], [800,400,35,65],
+      [120,550,26,48], [380,580,33,62], [550,560,29,55], [750,520,36,67], [900,580,24,46]
+    ];
+    peaks.forEach(function (p) {
+      svg += '<path d="M' + (p[0]-p[3]) + ',' + p[1] + ' L' + p[0] + ',' + (p[1]-p[2]) + ' L' + (p[0]+p[3]) + ',' + p[1] + ' Z" fill="rgba(30,32,48,0.35)" stroke="rgba(60,66,90,0.2)" stroke-width="0.5"/>';
+    });
+
+    // 颗粒纹理覆盖层
+    svg += '<rect width="1000" height="700" fill="rgba(0,0,0,0.03)" filter="url(#wmGrain)"/>';
+
+    // 连通边
     var drawn = {};
     areas.forEach(function (a) {
       (a.exits || []).forEach(function (ex) {
@@ -196,6 +237,8 @@ var UI = (function () {
       if (cur) cls += ' cur';
       else if (locked) cls += ' locked';
       else if (!reached) cls += ' unreached';
+      // 界域筛选：非当前界且非当前位置 -> 隐藏
+      if (wmFilter !== 'all' && a.region !== wmFilter && !cur) cls += ' wm-hidden';
       var prog = WorldMap.getExploreProgress(a.id);
       var title = a.name + ' · ' + a.region + '（' + areaTypeTxt(a) + '）\n'
         + 'Lv' + a.lvMin + '-' + a.lvMax
@@ -219,6 +262,87 @@ var UI = (function () {
       node.style.top = (a.pos[1]) + '%';
       node.addEventListener('click', function () { onWorldNodeClick(a.id); });
     });
+
+    applyWorldMapTransform();
+  }
+
+  /* ---- 应用缩放/平移变换 ---- */
+  function applyWorldMapTransform() {
+    var inner = document.getElementById('worldmap-inner');
+    if (inner) {
+      inner.style.transform = 'translate(' + wmPanX + 'px,' + wmPanY + 'px) scale(' + wmZoom + ')';
+    }
+  }
+
+  /* ---- 渲染界域筛选按钮 ---- */
+  function renderFilterBar() {
+    var el = document.getElementById('wm-filter');
+    if (!el) return;
+    var regions = ['all', '凡界', '冥界', '北荒', '洪荒', '仙界'];
+    var labels = { 'all': '全部', '凡界': '凡界', '冥界': '冥界', '北荒': '北荒', '洪荒': '洪荒', '仙界': '仙界' };
+    var html = regions.map(function (r) {
+      var cls = 'wm-filter-btn' + (wmFilter === r ? ' active' : '');
+      return '<button class="' + cls + '" data-region="' + r + '">' + labels[r] + '</button>';
+    }).join('');
+    el.innerHTML = html;
+    Array.prototype.forEach.call(el.querySelectorAll('.wm-filter-btn'), function (btn) {
+      btn.addEventListener('click', function () {
+        wmFilter = btn.dataset.region;
+        renderFilterBar();
+        renderWorldMap();
+      });
+    });
+  }
+
+  /* ---- 初始化总览图交互（缩放/平移/筛选） ---- */
+  function initWorldMapControls() {
+    // 缩放按钮
+    var zoomIn = document.getElementById('btn-zoom-in');
+    var zoomOut = document.getElementById('btn-zoom-out');
+    var zoomReset = document.getElementById('btn-zoom-reset');
+    if (zoomIn) zoomIn.addEventListener('click', function () {
+      wmZoom = Math.min(4, wmZoom + 0.3); applyWorldMapTransform();
+    });
+    if (zoomOut) zoomOut.addEventListener('click', function () {
+      wmZoom = Math.max(0.5, wmZoom - 0.3); applyWorldMapTransform();
+    });
+    if (zoomReset) zoomReset.addEventListener('click', function () {
+      wmZoom = 1.0; wmPanX = 0; wmPanY = 0; applyWorldMapTransform();
+    });
+
+    // 鼠标滚轮缩放
+    var wmEl = document.getElementById('worldmap');
+    if (wmEl) {
+      wmEl.addEventListener('wheel', function (e) {
+        e.preventDefault();
+        var delta = e.deltaY < 0 ? 0.15 : -0.15;
+        wmZoom = Math.max(0.5, Math.min(4, wmZoom + delta));
+        applyWorldMapTransform();
+      }, { passive: false });
+
+      // 拖拽平移
+      var dragging = false, startX = 0, startY = 0, startPanX = 0, startPanY = 0;
+      wmEl.addEventListener('mousedown', function (e) {
+        if (e.target.closest('.wm-node')) return; // 不拦截标点点击
+        dragging = true;
+        startX = e.clientX; startY = e.clientY;
+        startPanX = wmPanX; startPanY = wmPanY;
+        wmEl.classList.add('dragging');
+      });
+      document.addEventListener('mousemove', function (e) {
+        if (!dragging) return;
+        wmPanX = startPanX + (e.clientX - startX);
+        wmPanY = startPanY + (e.clientY - startY);
+        applyWorldMapTransform();
+      });
+      document.addEventListener('mouseup', function () {
+        if (!dragging) return;
+        dragging = false;
+        wmEl.classList.remove('dragging');
+      });
+    }
+
+    renderFilterBar();
   }
 
   /* ---- 点击总览图标点：直达或提示解锁 ---- */
@@ -587,6 +711,9 @@ var UI = (function () {
     // 出身选择
     renderProfessions();
 
+    // 总览图交互（缩放/平移/筛选）
+    initWorldMapControls();
+
     // 确认出身
     document.getElementById('btn-confirm-prof').addEventListener('click', function () {
       if (!selectedProf) return;
@@ -685,6 +812,9 @@ var UI = (function () {
       if (forgeTargetUid) updateForgePanel();
     });
     Bus.on('combatRound', function (r) {
+      if (r.isBossKill) {
+        Combat.getLog().unshift({ time: Date.now(), text: '👑 击杀区域 BOSS！获得丰厚奖励！' });
+      }
       if (r.drop) {
         Combat.getLog().unshift({ time: Date.now(), text: '🎁 掉落 ' + r.drop.qualityName + r.drop.slotName + '!' });
       }

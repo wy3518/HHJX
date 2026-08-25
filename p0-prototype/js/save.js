@@ -43,6 +43,15 @@ var Save = (function () {
     if (!data || typeof data !== 'object') return false;
     var s = State.get();
     Object.keys(data).forEach(function (k) { s[k] = data[k]; });
+    // 校验 areaId：旧存档的 areaId 可能在新数据中不存在
+    if (s.map && s.map.areaId) {
+      var found = CONFIG.MAPAREAS.find(function (a) { return a.id === s.map.areaId; });
+      if (!found) {
+        s.map.areaId = 'qingshi';
+        s.map.moving = false;
+        s.map.travel = null;
+      }
+    }
     return true;
   }
 

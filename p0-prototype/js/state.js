@@ -335,7 +335,13 @@ var State = (function () {
   /* ---- 获取当前地图区域 ---- */
   function getCurrentArea() {
     var s = get();
-    return CONFIG.MAPAREAS.find(function (a) { return a.id === s.map.areaId; });
+    var area = CONFIG.MAPAREAS.find(function (a) { return a.id === s.map.areaId; });
+    if (!area) {
+      // areaId 无效：回退到青石镇并修正
+      s.map.areaId = 'qingshi';
+      area = CONFIG.MAPAREAS.find(function (a) { return a.id === 'qingshi'; });
+    }
+    return area;
   }
 
   /* ---- 获取当前区域怪物池（野外才有怪，城镇返回空） ---- */
@@ -351,17 +357,22 @@ var State = (function () {
   /* ---- 记录击杀：累计击杀统计 + 当前区域的探索度 ---- */
   function recordKill(monster) {
     var s = get();
-    var prog = s.stageProgress[s.currentStage];
-    if (!prog) {
-      prog = { kills: 0, bossKilled: false };
-      s.stageProgress[s.currentStage] = prog;
+    // 兼容旧关卡系统：currentStage 可能为 null（B 方案不用关卡）
+    if (s.currentStage) {
+      var prog = s.stageProgress[s.currentStage];
+      if (!prog) {
+        prog = { kills: 0, bossKilled: false };
+        s.stageProgress[s.currentStage] = prog;
+      }
+      prog.kills++;
+      if (monster.isBoss) prog.bossKilled = true;
     }
-    prog.kills++;
-    if (monster.isBoss) prog.bossKilled = true;
-    // 探索度：记录本区域击杀过的怪物种类
+    // 探索度：记录本区域击杀过的怪物种类 + 累计击杀数
     var area = getCurrentArea();
-    s.map.explored[s.map.areaId] = s.map.explored[s.map.areaId] || { killed: {} };
+    s.map.explored[s.map.areaId] = s.map.explored[s.map.areaId] || { killed: {}, kills: 0, bossKilled: false };
     s.map.explored[s.map.areaId].killed[monster.id] = true;
+    s.map.explored[s.map.areaId].kills = (s.map.explored[s.map.areaId].kills || 0) + 1;
+    if (monster.isBoss) s.map.explored[s.map.areaId].bossKilled = true;
     s.stats.totalKills++;
   }
 

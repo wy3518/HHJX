@@ -156,16 +156,35 @@ var Combat = (function () {
     if (!derived) return null;
 
     // 锁定目标：没有当前目标（或上一只已击杀）时，从当前区域怪物池锁一只满血怪
-    var monsters = State.getMapMonsters();
-    if (!monsters || monsters.length === 0) {
+    var allMonsters = State.getMapMonsters();
+    if (!allMonsters || allMonsters.length === 0) {
       // 城镇安全区无怪，仅结算回血，不产生战斗
       return null;
     }
 
+    // 分离 Boss 与普通怪：Boss 仅在特定条件下触发遭遇
+    var bossMobs = allMonsters.filter(function (m) { return m.isBoss; });
+    var regMobs = allMonsters.filter(function (m) { return !m.isBoss; });
+    var area = State.getCurrentArea();
+    var exp = s.map.explored[s.map.areaId] || { kills: 0 };
+    var killCount = exp.kills || 0;
+
     if (!currentTarget || !currentTarget.monster) {
-      var mIdx = Math.floor(rng() * monsters.length);
-      var monster = monsters[mIdx];
-      currentTarget = { monster: monster, hp: monster.hp };
+      var monster;
+      // Boss 遭遇条件：该区域有 Boss，且每 15 次击杀后有 35% 概率遭遇 Boss
+      if (bossMobs.length > 0 && killCount > 0 && killCount % 15 === 0 && rng() < 0.35) {
+        var bIdx = Math.floor(rng() * bossMobs.length);
+        monster = bossMobs[bIdx];
+        currentTarget = { monster: monster, hp: monster.hp, isBoss: true, enrage: false };
+      } else if (regMobs.length > 0) {
+        var mIdx = Math.floor(rng() * regMobs.length);
+        monster = regMobs[mIdx];
+        currentTarget = { monster: monster, hp: monster.hp, isBoss: false };
+      } else {
+        // 只有 Boss 没有普通怪（极端情况）：直接遭遇 Boss
+        monster = bossMobs[0];
+        currentTarget = { monster: monster, hp: monster.hp, isBoss: true, enrage: false };
+      }
     }
     var monster = currentTarget.monster;
 
@@ -178,6 +197,7 @@ var Combat = (function () {
       monsterDmg: 0, monsterCrit: false,
       reflectDmg: 0,
       playerDead: false, monsterDead: false,
+      isBossKill: false,
       expGained: 0, goldGained: 0, drop: null
     };
 
@@ -229,10 +249,13 @@ var Combat = (function () {
 
     if (mDead) {
       result.monsterDead = true;
+      result.isBossKill = !!(currentTarget && currentTarget.isBoss);
       currentTarget = null; // 击杀后清除目标，下一轮锁定新怪
-      // 击杀奖励
-      result.expGained = monster.expR;
-      result.goldGained = monster.goldR;
+      // 击杀奖励：Boss 额外 ×3 经验 ×2 铜钱
+      var expMult = result.isBossKill ? 3 : 1;
+      var goldMult = result.isBossKill ? 2 : 1;
+      result.expGained = Math.floor(monster.expR * expMult);
+      result.goldGained = Math.floor(monster.goldR * goldMult);
       // 记录击杀
       State.recordKill(monster);
       // 掉落判定
@@ -245,8 +268,14 @@ var Combat = (function () {
       State.addExp(result.expGained);
       State.addGold(result.goldGained);
     } else {
+      // Boss 狂暴：HP 低于 50% 时攻击力 ×1.5（仅触发一次）
+      if (currentTarget.isBoss && !currentTarget.enrage && currentTarget.hp <= monster.hp * 0.5) {
+        currentTarget.enrage = true;
+        Combat.getLog().unshift({ time: Date.now(), text: '⚠ 『' + monster.name + '』进入狂暴状态！' });
+      }
+      var bossAtkMod = (currentTarget.isBoss && currentTarget.enrage) ? 1.5 : 1.0;
       // 怪物反击
-      var mAtk = calcAttack(monster.atk, derived.def, 0, 1.0, 1.0, derived.dmgReduce);
+      var mAtk = calcAttack(Math.floor(monster.atk * bossAtkMod), derived.def, 0, 1.0, 1.0, derived.dmgReduce);
       result.monsterDmg = mAtk.dmg;
 
       // 体修反伤（技能可临时提升本次反伤）
@@ -266,9 +295,10 @@ var Combat = (function () {
 
     // 写日志
     var skillTxt = result.skillName ? '【' + result.skillName + '】' : '';
+    var bossTag = (currentTarget && currentTarget.isBoss) ? '[BOSS] ' : '';
     var logText = result.monsterDead
-      ? skillTxt + (result.playerCrit ? '暴击' : '击杀') + ' ' + monster.name + '，获得 ' + result.expGained + ' 经验'
-      : skillTxt + '对 ' + monster.name + ' 造成 ' + pAtk.dmg + (pAtk.isCrit ? '（暴击）' : '') + ' 伤害'
+      ? skillTxt + (result.isBossKill ? '⚔ 击杀 BOSS 『' + monster.name + '』！获得 ' : (result.playerCrit ? '暴击' : '击杀') + ' ' + monster.name + '，获得 ') + result.expGained + ' 经验'
+      : skillTxt + '对 ' + bossTag + monster.name + ' 造成 ' + pAtk.dmg + (pAtk.isCrit ? '（暴击）' : '') + ' 伤害'
           + (result.playerHeal ? '，疗伤 ' + result.playerHeal : '')
           + (result.dotName ? '，施放『' + result.dotName + '』' : '')
           + '，受击 ' + mAtk.dmg + (result.reflectDmg ? '，反伤 ' + result.reflectDmg : '');
