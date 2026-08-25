@@ -5,15 +5,6 @@
 
 var Drops = (function () {
 
-  /* ---- 词缀池 ---- */
-  var AFFIX_POOL = [
-    { stat: 'atk',  name: '攻击',  min: 3,  max: 12 },
-    { stat: 'def',  name: '防御',  min: 2,  max: 10 },
-    { stat: 'hp',   name: '气血',  min: 20, max: 80 },
-    { stat: 'crit', name: '会心',  min: 1,  max: 5  },  // crit rate %
-    { stat: 'agi',  name: '身法',  min: 1,  max: 5  }
-  ];
-
   /* ---- 加权随机选品质 ---- */
   function rollQuality(monsterType) {
     var weights = CONFIG.DROPS.qualityWeights[monsterType] || CONFIG.DROPS.qualityWeights.grunt;
@@ -32,17 +23,38 @@ var Drops = (function () {
     return CONFIG.SLOTS[Math.floor(Math.random() * CONFIG.SLOTS.length)];
   }
 
-  /* ---- 生成随机词缀 ---- */
+  /* ---- 生成随机词缀（品阶加权，来源 CONFIG.AFFIX_TIER/POOL） ---- */
+  function rollTier() {
+    var tiers = CONFIG.AFFIX_TIER;
+    var total = tiers.reduce(function (a, b) { return a + (b.weight || 0); }, 0);
+    var r = Math.random() * total;
+    var acc = 0;
+    for (var i = 0; i < tiers.length; i++) {
+      acc += (tiers[i].weight || 0);
+      if (r < acc) return tiers[i];
+    }
+    return tiers[0];
+  }
+
   function genAffixes(quality, monsterLevel) {
     var count = quality.affixMin + Math.floor(Math.random() * (quality.affixMax - quality.affixMin + 1));
-    var pool = AFFIX_POOL.slice();
+    var pool = CONFIG.AFFIX_POOL.slice();
+    var label = CONFIG.AFFIX_STAT_LABEL;
     var affixes = [];
     for (var i = 0; i < count && pool.length > 0; i++) {
       var idx = Math.floor(Math.random() * pool.length);
       var affix = pool.splice(idx, 1)[0];
+      var tier = rollTier();                       // 品阶（凡/良/优/极/仙）
       var lvScale = 1 + monsterLevel / 30;
-      var val = Math.floor((affix.min + Math.random() * (affix.max - affix.min)) * lvScale * quality.mult);
-      affixes.push({ stat: affix.stat, name: affix.name, val: val });
+      var val = Math.floor((affix.base + Math.random() * (affix.max - affix.base)) * lvScale * quality.mult * tier.mult);
+      affixes.push({
+        stat: affix.stat,
+        name: label[affix.stat] || affix.stat,
+        val: val,
+        tier: tier.id,
+        tierName: tier.name,
+        tierColor: tier.color
+      });
     }
     return affixes;
   }
@@ -112,10 +124,22 @@ var Drops = (function () {
     return null;
   }
 
+  /* ---- 洗练石掉落判定（独立于装备，CONFIG.REFINE） ---- */
+  function tryDropStone(monster) {
+    var rate = CONFIG.REFINE.stoneRate;
+    if (monster.isBoss) rate += CONFIG.REFINE.stoneBossBonus;
+    if (Math.random() < rate) {
+      State.addStone(1);
+      return 1;
+    }
+    return 0;
+  }
+
   return {
     tryDrop: tryDrop,
     tryDropGem: tryDropGem,
+    tryDropStone: tryDropStone,
     generateEquipment: generateEquipment,
-    AFFIX_POOL: AFFIX_POOL
+    AFFIX_POOL: CONFIG.AFFIX_POOL
   };
 })();

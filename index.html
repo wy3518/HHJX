@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>洪荒剑仙 P0 原型</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
 
@@ -47,6 +47,7 @@
     </div>
     <div class="currencies">
       <span class="currency" title="铜钱">💰<span id="gold">0</span></span>
+      <span class="currency" title="洗练石">⛏<span id="stone">0</span></span>
       <span class="currency" title="天工值">🔨<span id="blessing">0</span>/100</span>
     </div>
   </header>
@@ -106,6 +107,13 @@
           </div>
           <button id="btn-enhance" class="btn-primary">强化</button>
 
+          <div class="forge-gem-hd">✦ 词缀 / 洗练</div>
+          <div id="forge-affixes" class="affix-list"></div>
+          <div class="reforge-row">
+            <button id="btn-refine" class="btn-sm">洗练</button>
+            <span id="forge-refine-cost" class="reforge-cost"></span>
+          </div>
+
           <div class="forge-gem-hd">✦ 打孔 / 镶嵌</div>
           <div class="forge-sockets">
             <span>孔: <strong id="forge-sockets">0/0</strong></span>
@@ -129,15 +137,15 @@
 </div>
 
 <!-- 脚本引用顺序：数据 -> 总线 -> 状态 -> 系统 -> UI -> 入口 -->
-<script src="js/data.js?v=3"></script>
+<script src="js/data.js?v=6"></script>
 <script src="js/eventbus.js?v=3"></script>
-<script src="js/state.js?v=3"></script>
-<script src="js/combat.js?v=4"></script>
-<script src="js/drops.js?v=3"></script>
-<script src="js/forge.js?v=3"></script>
+<script src="js/state.js?v=6"></script>
+<script src="js/combat.js?v=6"></script>
+<script src="js/drops.js?v=6"></script>
+<script src="js/forge.js?v=6"></script>
 <script src="js/idle.js?v=3"></script>
 <script src="js/save.js?v=5"></script>
-<script src="js/ui.js?v=5"></script>
+<script src="js/ui.js?v=6"></script>
 <script src="js/app.js?v=5"></script>
 </body>
 </html>

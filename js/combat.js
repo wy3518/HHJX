@@ -64,7 +64,9 @@ var Combat = (function () {
     // 剑修被动 skillMod 放大技能伤害
     var prof = CONFIG.PROFESSIONS.find(function (x) { return x.id === s.player.professionId; });
     var skillMod = (prof && prof.passive && prof.passive.skillMod) ? (1 + prof.passive.skillMod) : 1;
-    var baseAtk = derived.atk * skill.power * skillMod;
+    // 技能威力（词条）进一步放大技能伤害
+    var spMod = 1 + ((derived.skillPower || 0) / 100);
+    var baseAtk = derived.atk * skill.power * skillMod * spMod;
 
     var def = monster.def;
     var critRate = Math.min(derived.critRate + (skill.critBonus || 0), 0.8);
@@ -207,6 +209,14 @@ var Combat = (function () {
     result.playerDmg = dotDmg + pAtk.dmg;
     result.playerCrit = pAtk.isCrit;
     result.playerHeal = pAtk.heal || 0;
+    // 通用吸血（词条）：未走技能吸血时，按吸血%回血
+    if (!(pAtk.heal) && derived.leech > 0 && currentTarget.hp > 0) {
+      var leechHeal = Math.floor(pAtk.dmg * (derived.leech / 100));
+      if (leechHeal > 0) {
+        s.player.hp = Math.min(s.player.hp + leechHeal, derived.maxHp);
+        result.playerHeal = (result.playerHeal || 0) + leechHeal;
+      }
+    }
     result.skillName = skillName;
     result.dotName = pAtk.dotName || null;
     currentTarget.hp -= pAtk.dmg;
@@ -226,6 +236,8 @@ var Combat = (function () {
       result.drop = Drops.tryDrop(monster);
       // 宝石掉落
       result.gemDrop = Drops.tryDropGem(monster);
+      // 洗练石掉落
+      result.stoneDrop = Drops.tryDropStone(monster);
       // 加经验/铜钱
       State.addExp(result.expGained);
       State.addGold(result.goldGained);
@@ -259,6 +271,9 @@ var Combat = (function () {
           + '，受击 ' + mAtk.dmg + (result.reflectDmg ? '，反伤 ' + result.reflectDmg : '');
     if (result.monsterDead && result.gemDrop) {
       logText += '，拾得『' + result.gemDrop.name + '』';
+    }
+    if (result.monsterDead && result.stoneDrop) {
+      logText += '，拾得『洗练石』';
     }
     var entry = {
       time: Date.now(),

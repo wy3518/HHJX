@@ -57,6 +57,9 @@ var UI = (function () {
 
     document.getElementById('gold').textContent = Math.floor(s.currencies.gold).toLocaleString();
     document.getElementById('blessing').textContent = s.currencies.blessing;
+    if (document.getElementById('stone')) {
+      document.getElementById('stone').textContent = s.currencies.stone;
+    }
   }
 
   /* ============ 角色属性面板 ============ */
@@ -74,6 +77,8 @@ var UI = (function () {
       ['会心率', (d.critRate * 100).toFixed(1) + '%'],
       ['会心伤害', (d.critDmg * 100).toFixed(0) + '%'],
       ['身法', d.speed],
+      ['吸血', (d.leech > 0) ? d.leech + '%' : '-'],
+      ['技能威力', (d.skillPower > 0) ? '+' + d.skillPower + '%' : '-'],
       ['在线时长', Math.floor(s.stats.playTimeSec / 60) + ' 分']
     ];
 
@@ -116,6 +121,7 @@ var UI = (function () {
             (item.enhance > 0 ? '+' + item.enhance + ' ' : '') + item.name +
           '</div>' +
           '<div style="font-size:10px;color:var(--muted)">攻' + enhanced.atk + ' 防御' + enhanced.def + '</div>' +
+          (item.affixes && item.affixes.length > 0 ? '<div style="font-size:10px;color:var(--blue)">' + item.affixes.length + '词缀</div>' : '') +
         '</div>';
       }
       return '<div class="equip-slot empty" data-slot="' + slot.id + '">' +
@@ -202,6 +208,18 @@ var UI = (function () {
   }
 
   /* ============ 背包 ============ */
+  /* ---- 渲染词缀（品阶色 + 属性标签 + 数值） ---- */
+  function fmtAffix(item) {
+    var a = item.affixes || [];
+    if (a.length === 0) return '';
+    return '<div class="affix-list">' + a.map(function (af) {
+      var tc = af.tierColor || item.color;
+      return '<span class="affix-line" style="color:' + tc + '">'
+        + (af.tierName ? '[' + af.tierName + ']' : '')
+        + af.name + ' +' + af.val + '</span>';
+    }).join('') + '</div>';
+  }
+
   function updateInventory() {
     var s = State.get();
     document.getElementById('inv-count').textContent = s.inventory.length + '/30';
@@ -218,7 +236,8 @@ var UI = (function () {
         '<div class="item-info">' +
           '<span style="color:' + item.color + '">' + item.name + '</span>' +
           (item.enhance > 0 ? ' <span class="item-enhance">+' + item.enhance + '</span>' : '') +
-          '<div style="font-size:10px;color:var(--muted)">攻' + enhanced.atk + ' 防御' + enhanced.def + (item.affixes.length > 0 ? ' ' + item.affixes.length + '词缀' : '') + '</div>' +
+          '<div style="font-size:10px;color:var(--muted)">攻' + enhanced.atk + ' 防御' + enhanced.def + (item.affixes.length > 0 ? ' · ' + item.affixes.length + '词缀' : '') + '</div>' +
+          fmtAffix(item) +
         '</div>' +
         '<button class="btn-sm equip-btn" data-uid="' + item.uid + '">穿</button>' +
       '</div>';
@@ -285,6 +304,19 @@ var UI = (function () {
       (item.enhance > 0 ? ' +' + item.enhance : '');
     document.getElementById('forge-current').textContent = '+' + item.enhance + (canForge ? ' (上限 +' + max + ')' : ' (已达上限)');
 
+    // 词缀区
+    document.getElementById('forge-affixes').innerHTML = fmtAffix(item) ||
+      '<div class="gem-hint">该装备无词缀</div>';
+
+    // 洗练按钮/成本
+    var needStone = CONFIG.QUALITY.find(function (x) { return x.id === item.qualityId; }) || {};
+    var rs = needStone.reforgeStone || 1, rg = needStone.reforgeGold || 0;
+    var btnRefine = document.getElementById('btn-refine');
+    btnRefine.textContent = '洗练（' + rs + '石 + ' + rg + '铜）';
+    btnRefine.disabled = !(s.currencies.stone >= rs && s.currencies.gold >= rg);
+    document.getElementById('forge-refine-cost').textContent =
+      '消耗 洗练石×' + rs + ' + 铜钱×' + rg.toLocaleString() + '，重掷全部词缀（类型/数值/品阶）';
+
     if (cfg) {
       var rate = cfg.rate;
       if (s.currencies.blessing >= 100) rate = 1.0;
@@ -324,6 +356,15 @@ var UI = (function () {
   function doSocket() {
     if (!forgeTargetUid) return;
     var result = Forge.socket(forgeTargetUid);
+    Combat.getLog().unshift({ time: Date.now(), text: result.message });
+    showForgeDetail(forgeTargetUid);
+    refresh();
+  }
+
+  /* ---- 洗练 ---- */
+  function doRefine() {
+    if (!forgeTargetUid) return;
+    var result = Forge.refine(forgeTargetUid);
     Combat.getLog().unshift({ time: Date.now(), text: result.message });
     showForgeDetail(forgeTargetUid);
     refresh();
@@ -493,6 +534,7 @@ var UI = (function () {
     // 强化按钮
     document.getElementById('btn-enhance').addEventListener('click', doEnhance);
     document.getElementById('btn-socket').addEventListener('click', doSocket);
+    document.getElementById('btn-refine').addEventListener('click', doRefine);
 
     // 保存
     document.getElementById('btn-save').addEventListener('click', function () {
@@ -528,13 +570,24 @@ var UI = (function () {
     Bus.on('goldChange', function () {
       document.getElementById('gold').textContent = State.get().currencies.gold.toLocaleString();
     });
+    Bus.on('stoneChange', function () {
+      if (document.getElementById('stone')) {
+        document.getElementById('stone').textContent = State.get().currencies.stone;
+      }
+      // 洗练成本随石头变化刷新按钮可用态
+      if (forgeTargetUid) updateForgePanel();
+    });
     Bus.on('combatRound', function (r) {
       if (r.drop) {
         Combat.getLog().unshift({ time: Date.now(), text: '🎁 掉落 ' + r.drop.qualityName + r.drop.slotName + '!' });
       }
+      if (r.stoneDrop) {
+        Combat.getLog().unshift({ time: Date.now(), text: '⛏ 拾得洗练石×1' });
+      }
       updateCombatLog();
       updateTopBar();
     });
+    Bus.on('refineResult', function () { refresh(); });
     Bus.on('itemAdded', function () { updateInventory(); updateForgePanel(); });
     Bus.on('equipChange', function () { updateEquipSlots(); updateStats(); updateTopBar(); });
     Bus.on('forgeResult', function (r) { updateForgePanel(); });
