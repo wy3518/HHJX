@@ -48,6 +48,7 @@ var State = (function () {
         totalExp: 0,            // 累计经验（用于统计）
         stats: null,            // 五维 {str,erg,spi,agi,vit}
         // 派生属性在 getPlayer() 中实时计算
+        hp: 0, mp: 0            // 实时生命 / 灵力（开局由 getDerived 兜底为满值）
       },
 
       // 货币

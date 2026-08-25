@@ -80,6 +80,23 @@ var UI = (function () {
     var html = rows.map(function (r) {
       return '<div class="stat-row"><span class="label">' + r[0] + '</span><span class="val' + (r[0] === '会心率' ? ' crit' : '') + '">' + r[1] + '</span></div>';
     }).join('');
+
+    // 技能连招区（P2）：展示当前出身可释放的技能序列
+    var skills = CONFIG.SKILLS[s.player.professionId] || [];
+    var shtml = '<div class="skill-hd">技能连招</div>';
+    if (skills.length) {
+      skills.forEach(function (sk, i) {
+        shtml += '<div class="skill-row">'
+          + '<span class="skill-idx">' + (i + 1) + '</span>'
+          + '<span class="skill-name" title="' + sk.desc + '">' + sk.name + '</span>'
+          + '<span class="skill-mp">MP' + sk.mp + '</span>'
+          + '</div>';
+      });
+    } else {
+      shtml += '<div class="skill-row muted">未习得技能，以普通攻击对敌</div>';
+    }
+    html += shtml;
+
     document.getElementById('stat-block').innerHTML = html;
 
     // 战力
