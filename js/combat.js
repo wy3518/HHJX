@@ -7,6 +7,9 @@ var Combat = (function () {
 
   var log = [];
 
+  // 当前战斗锁定目标 { monster, hp(剩余) }：挂机时持续对同一只怪累计扣血，击杀后才换下一只
+  var currentTarget = null;
+
   /* ---- 可播种随机数 ---- */
   var seed = Date.now();
   function rng() {
@@ -62,13 +65,16 @@ var Combat = (function () {
     var derived = State.getDerived();
     if (!derived) return null;
 
-    // 选怪：从当前关卡随机选一只未死的怪
+    // 锁定目标：没有当前目标（或上一只已击杀）时，从关卡怪物池锁一只满血怪
     var monsters = State.getStageMonsters();
     if (!monsters || monsters.length === 0) return null;
 
-    // P0 简化：每次从关卡怪物池随机选一只
-    var mIdx = Math.floor(rng() * monsters.length);
-    var monster = monsters[mIdx];
+    if (!currentTarget || !currentTarget.monster) {
+      var mIdx = Math.floor(rng() * monsters.length);
+      var monster = monsters[mIdx];
+      currentTarget = { monster: monster, hp: monster.hp };
+    }
+    var monster = currentTarget.monster;
 
     // 怪物体型修正
     var sizeMod = CONFIG.COMBAT.sizeMod[monster.size] || 1.0;
@@ -82,17 +88,18 @@ var Combat = (function () {
       expGained: 0, goldGained: 0, drop: null
     };
 
-    // 玩家攻击怪物
+    // 玩家攻击：对当前锁定目标累计扣血（不再每次满血）
     var pAtk = calcAttack(derived.atk, monster.def, derived.critRate, derived.critDmg, sizeMod, 0);
     result.playerDmg = pAtk.dmg;
     result.playerCrit = pAtk.isCrit;
+    currentTarget.hp -= pAtk.dmg;
 
-    // 怪物 HP（P0 简化：每只怪独立 HP，每次遭遇满血）
-    var mHp = monster.hp;
-    var mDead = pAtk.dmg >= mHp;
+    // 目标生命耗尽 → 判定击杀
+    var mDead = currentTarget.hp <= 0;
 
     if (mDead) {
       result.monsterDead = true;
+      currentTarget = null; // 击杀后清除目标，下一轮锁定新怪
       // 击杀奖励
       result.expGained = monster.expR;
       result.goldGained = monster.goldR;

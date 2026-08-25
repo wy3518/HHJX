@@ -8,7 +8,31 @@ var State = (function () {
   /* ---- 内部状态 ---- */
   var state = null;
 
-  /* ---- 默认初始状态 ---- */
+  /* ---- 新手初始装备（凡品） ----
+   * 按部位给一件基础凡品装备，属性取 SLOTS 部位基础值
+   */
+  function starter(slotId) {
+    var slot = CONFIG.SLOTS.find(function (x) { return x.id === slotId; });
+    if (!slot) return null;
+    return {
+      uid: 'starter_' + slot.id + '_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+      slot: slot.id,
+      slotName: slot.name,
+      qualityId: 1,
+      qualityName: '凡品',
+      color: '#9e9e9e',
+      name: '凡品' + slot.name,
+      enhance: 0,
+      atk: Math.round(slot.baseAtk * 0.8),
+      def: Math.round(slot.baseDef * 0.8),
+      affixes: [],
+      sockets: [],
+      gems: [],
+      level: 1
+    };
+  }
+
+  /* ---- 初始默认状态 ---- */
   function createDefault() {
     return {
       version: CONFIG.SAVE.version,
@@ -39,7 +63,15 @@ var State = (function () {
 
       // 背包
       inventory: [],            // [{uid, slot, qualityId, name, enhance, atk, def, affixes, sockets, gems, level}]
-      equipped: {},             // {slot: inventoryItem}
+      equipped: {
+        // 新手初始装备（凡品）：保证开局能击杀第 1 章最弱怪，形成击杀→掉落→强化闭环
+        weapon: starter('weapon'),
+        amulet: starter('amulet'),
+        cloak: starter('cloak'),
+        bracer: starter('bracer'),
+        belt: starter('belt'),
+        necklace: starter('necklace')
+      },
       gems: [],                 // 宝石背包 [{uid, gid, name, stat, base, color}]
 
       // 统计
