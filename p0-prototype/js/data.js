@@ -53,6 +53,45 @@ var CONFIG = (function () {
     }
   ];
 
+  /* ---- 技能连招表（P2） ----
+   * 每个出身一套连招序列（4 技），战斗按序循环释放、消耗灵力(MP)。
+   * type 特效：
+   *   strike      单体爆发（可选 critBonus 额外会心率）
+   *   armorBreak  破防（armor: 无视目标防御比例）
+   *   multi       多段连击（cuts: 段数，每段独立会心判定）
+   *   leech       吸血（leech: 造成伤害的回血比例）
+   *   heal        自愈（heal: 回复上限HP比例，可选 dotPerTurn/dotTurns 附带毒）
+   *   reflect     重击（可选 reflectBonus 本次受击反伤提升）
+   *   dot         持续灼烧（dotPerTurn: 每回合扣 HP 比例×atk，dotTurns: 持续回合）
+   * power 为相对面板攻击的倍率；剑修被动 skillMod 会进一步放大技能伤害。
+   */
+  var SKILLS = {
+    sword: [
+      { name: '青锋斩',      mp: 10, power: 1.5, type: 'strike',     critBonus: 0.04, desc: '剑意直取，会心率+4%' },
+      { name: '剑破万法',    mp: 16, power: 2.2, type: 'armorBreak', armor: 0.30,     desc: '无视目标30%防御' },
+      { name: '万剑归宗',    mp: 26, power: 0.8, type: 'multi',      cuts: 4,         desc: '剑气纵横，连斩4段' },
+      { name: '一剑·霜寒',   mp: 34, power: 3.6, type: 'strike',     critBonus: 0.10, desc: '霜芒满月，高会心一击' }
+    ],
+    body: [
+      { name: '镇岳',        mp: 10, power: 1.3, type: 'leech',  leech: 0.40,              desc: '重击镇地，吸血40%' },
+      { name: '金钟罩',      mp: 14, power: 0.7, type: 'heal',   heal: 0.15,               desc: '内息流转，回复15%气血' },
+      { name: '反震·开山',   mp: 22, power: 2.4, type: 'reflect', reflectBonus: 0.40,     desc: '陨石裂地，临时提升反伤' },
+      { name: '不动明王',    mp: 30, power: 2.0, type: 'leech',  leech: 0.80,              desc: '金身硬撼，吸血80%' }
+    ],
+    alchemy: [
+      { name: '蚀骨火',      mp: 12, power: 1.0, type: 'dot',   dotPerTurn: 0.12, dotTurns: 4, desc: '毒火缠身，持续灼烧' },
+      { name: '枯荣·生',     mp: 18, power: 0.5, type: 'heal',  heal: 0.25,                 desc: '枯木逢春，回复25%气血' },
+      { name: '万毒噬心',    mp: 24, power: 1.3, type: 'dot',   dotPerTurn: 0.20, dotTurns: 5, desc: '剧毒入脉，强效侵蚀' },
+      { name: '九九还丹',    mp: 32, power: 0.6, type: 'heal',  heal: 0.50, dotPerTurn: 0.15, dotTurns: 4, desc: '炼丹回照，大量回血并续毒' }
+    ],
+    spirit: [
+      { name: '灵犀一击',    mp: 10, power: 1.0, type: 'multi', cuts: 2,                    desc: '人宠并肩，连袭2段' },
+      { name: '兽灵附体',    mp: 16, power: 0.8, type: 'leech', leech: 0.50,                desc: '灵契共鸣，吸血50%' },
+      { name: '共生·怒',     mp: 22, power: 0.9, type: 'multi', cuts: 3,                    desc: '共生激荡，合击3段' },
+      { name: '万灵归一',    mp: 30, power: 0.85,type: 'multi', cuts: 4,                    desc: '万灵合一，齐袭4段' }
+    ]
+  };
+
   /* ---- 属性换算公式 ---- */
   var STAT = {
     // 物理攻击力 = 力量 × 2 + 等级 × 4（每级基础成长）
@@ -233,6 +272,7 @@ var CONFIG = (function () {
   return {
     EXP: EXP,
     PROFESSIONS: PROFESSIONS,
+    SKILLS: SKILLS,
     STAT: STAT,
     COMBAT: COMBAT,
     combatPower: combatPower,
