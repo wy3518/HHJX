@@ -55,7 +55,8 @@ var State = (function () {
       currencies: {
         gold: 100,             // 初始铜钱
         iron: { '普通': 5, '中品': 0, '上品': 0 },  // 玄铁
-        blessing: 0            // 天工值
+        blessing: 0,           // 天工值
+        stone: 0               // 洗练石
       },
 
       // 当前关卡
@@ -121,12 +122,27 @@ var State = (function () {
     // 装备加成
     var eqAtk = 0, eqDef = 0;
     var gemAtk = 0, gemDef = 0, gemHp = 0, gemCrit = 0, gemAgi = 0;
+    // 词缀加成（攻/防/气血/会心/身法/会伤/吸血/技威）
+    var afAtk = 0, afDef = 0, afHp = 0, afCrit = 0, afAgi = 0, afCritDmg = 0, afLeech = 0, afSkillPower = 0;
     Object.keys(s.equipped).forEach(function (slot) {
       var item = s.equipped[slot];
       if (item) {
         eqAtk += item.atk || 0;
         eqDef += item.def || 0;
       }
+      // 词缀加成：每件装备的词缀数组按属性累加
+      if (item) (item.affixes || []).forEach(function (a) {
+        if (!a) return;
+        var v = a.val || 0;
+        if (a.stat === 'atk') afAtk += v;
+        else if (a.stat === 'def') afDef += v;
+        else if (a.stat === 'hp') afHp += v;
+        else if (a.stat === 'crit') afCrit += v;
+        else if (a.stat === 'agi') afAgi += v;
+        else if (a.stat === 'critDmg') afCritDmg += v;
+        else if (a.stat === 'leech') afLeech += v;
+        else if (a.stat === 'skillPower') afSkillPower += v;
+      });
       // 已镶嵌宝石加成（gems[i] 与 sockets[i] 逐孔对齐）
       if (item) (item.gems || []).forEach(function (gid) {
         if (!gid) return;
@@ -140,21 +156,21 @@ var State = (function () {
       });
     });
 
-    // 基础攻击力 = 力量×2 + 等级×4 + 装备攻击 + 宝石攻击
-    var atk = S.atk(st, lv) + eqAtk + gemAtk;
+    // 基础攻击力 = 力量×2 + 等级×4 + 装备攻击 + 宝石攻击 + 词条攻击
+    var atk = S.atk(st, lv) + eqAtk + gemAtk + afAtk;
     // 元素攻击 = 元神×1.5 + 等级×1
     var elemAtk = S.elemAtk(st, lv);
-    // 防御力 = 筋骨÷3 + 等级×2 + 装备防御 + 宝石防御
-    var def = S.def(st, lv) + eqDef + gemDef;
-    // 体力上限（宝石气血加成叠加上限）
-    var maxHp = S.maxHp(st, lv) + gemHp;
+    // 防御力 = 筋骨÷3 + 等级×2 + 装备防御 + 宝石防御 + 词条防御
+    var def = S.def(st, lv) + eqDef + gemDef + afDef;
+    // 体力上限（宝石+词条气血加成叠加上限）
+    var maxHp = S.maxHp(st, lv) + gemHp + afHp;
     // 法力上限
     var maxMp = S.maxMp(st, lv);
-    // 会心（宝石会心加成）
-    var critRate = S.critRate(st) + gemCrit;
-    var critDmg = S.critDmg(st);
-    // 身法（宝石身法加成）
-    var speed = S.speed(st) + gemAgi;
+    // 会心（宝石+词条会心加成）
+    var critRate = S.critRate(st) + gemCrit + afCrit;
+    var critDmg = S.critDmg(st) + afCritDmg;
+    // 身法（宝石+词条身法加成）
+    var speed = S.speed(st) + gemAgi + afAgi;
 
     // 出身被动加成
     var pas = prof.passive;
@@ -183,7 +199,9 @@ var State = (function () {
       power: power,
       dmgReduce: (pas.type === 'tank') ? pas.dmgReduce : 0,
       reflect: (pas.type === 'tank') ? pas.reflect : 0,
-      passiveType: pas.type
+      passiveType: pas.type,
+      leech: afLeech,           // 通用吸血% (词条累计)
+      skillPower: afSkillPower  // 技能威力% (词条累计)
     };
   }
 
@@ -243,6 +261,21 @@ var State = (function () {
     if (s.currencies.gold < amount) return false;
     s.currencies.gold -= amount;
     Bus.emit('goldChange', s.currencies.gold);
+    return true;
+  }
+
+  /* ---- 增加洗练石 ---- */
+  function addStone(amount) {
+    get().currencies.stone += amount;
+    Bus.emit('stoneChange', get().currencies.stone);
+  }
+
+  /* ---- 消耗洗练石 ---- */
+  function spendStone(amount) {
+    var s = get();
+    if (s.currencies.stone < amount) return false;
+    s.currencies.stone -= amount;
+    Bus.emit('stoneChange', s.currencies.stone);
     return true;
   }
 
@@ -360,6 +393,8 @@ var State = (function () {
     addExp: addExp,
     addGold: addGold,
     spendGold: spendGold,
+    addStone: addStone,
+    spendStone: spendStone,
     getStageMonsters: getStageMonsters,
     isStageUnlocked: isStageUnlocked,
     isStagePowerOk: isStagePowerOk,

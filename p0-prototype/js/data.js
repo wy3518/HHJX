@@ -139,13 +139,13 @@ var CONFIG = (function () {
 
   /* ---- 装备品质（7 档） ---- */
   var QUALITY = [
-    { id: 1, name: '凡品', color: '#9e9e9e', mult: 1.0, affixMin: 0, affixMax: 2, enhanceMax: 6,  dropWeight: 0   },
-    { id: 2, name: '良品', color: '#4caf50', mult: 1.3, affixMin: 1, affixMax: 4, enhanceMax: 8,  dropWeight: 70  },
-    { id: 3, name: '上品', color: '#2196f3', mult: 1.5, affixMin: 1, affixMax: 6, enhanceMax: 10, dropWeight: 100 },
-    { id: 4, name: '精品', color: '#ff9800', mult: 1.8, affixMin: 2, affixMax: 7, enhanceMax: 12, dropWeight: 18  },
-    { id: 5, name: '绝品', color: '#ff5722', mult: 2.1, affixMin: 3, affixMax: 9, enhanceMax: 13, dropWeight: 6   },
-    { id: 6, name: '仙品', color: '#e91e63', mult: 2.5, affixMin: 4, affixMax: 11,enhanceMax: 15, dropWeight: 1.5 },
-    { id: 7, name: '神话', color: '#9c27b0', mult: 3.0, affixMin: 5, affixMax: 13,enhanceMax: 15, dropWeight: 0.5 }
+    { id: 1, name: '凡品', color: '#9e9e9e', mult: 1.0, affixMin: 0, affixMax: 2, enhanceMax: 6,  dropWeight: 0,   reforgeStone: 1, reforgeGold: 300  },
+    { id: 2, name: '良品', color: '#4caf50', mult: 1.3, affixMin: 1, affixMax: 4, enhanceMax: 8,  dropWeight: 70,  reforgeStone: 1, reforgeGold: 600  },
+    { id: 3, name: '上品', color: '#2196f3', mult: 1.5, affixMin: 1, affixMax: 6, enhanceMax: 10, dropWeight: 100, reforgeStone: 2, reforgeGold: 1200 },
+    { id: 4, name: '精品', color: '#ff9800', mult: 1.8, affixMin: 2, affixMax: 7, enhanceMax: 12, dropWeight: 18,  reforgeStone: 2, reforgeGold: 2000 },
+    { id: 5, name: '绝品', color: '#ff5722', mult: 2.1, affixMin: 3, affixMax: 9, enhanceMax: 13, dropWeight: 6,   reforgeStone: 3, reforgeGold: 3500 },
+    { id: 6, name: '仙品', color: '#e91e63', mult: 2.5, affixMin: 4, affixMax: 11,enhanceMax: 15, dropWeight: 1.5, reforgeStone: 3, reforgeGold: 5000 },
+    { id: 7, name: '神话', color: '#9c27b0', mult: 3.0, affixMin: 5, affixMax: 13,enhanceMax: 15, dropWeight: 0.5, reforgeStone: 5, reforgeGold: 8000 }
   ];
 
   /* ---- 装备部位（6 类） ---- */
@@ -187,6 +187,36 @@ var CONFIG = (function () {
     { id: 4, name: '会心石', stat: 'crit', base: 3,  color: '#ffb300', dropW: 50  },
     { id: 5, name: '疾风坠', stat: 'agi',  base: 3,  color: '#00bcd4', dropW: 50  }
   ];
+
+  /* ---- 词条品阶（决定词条数值倍率与显示色） ---- */
+  var AFFIX_TIER = [
+    { id: 1, name: '凡', color: '#9e9e9e', mult: 0.7,  weight: 50 },
+    { id: 2, name: '良', color: '#4caf50', mult: 1.0,  weight: 30 },
+    { id: 3, name: '优', color: '#2196f3', mult: 1.35, weight: 14 },
+    { id: 4, name: '极', color: '#ab47bc', mult: 1.75, weight: 5  },
+    { id: 5, name: '仙', color: '#ffb300', mult: 2.25, weight: 1  }
+  ];
+  /* 词条属性统一标签（用于 parse 显示） */
+  var AFFIX_STAT_LABEL = { atk: '攻击', def: '防御', hp: '气血', crit: '会心', agi: '身法', critDmg: '会心伤害', leech: '吸血', skillPower: '技能威力' };
+
+  /* ---- 词条池（P2 装备词条系统）：各属性基准区间（精良档） ---- */
+  var AFFIX_POOL = [
+    { stat: 'atk',        base: 3,  max: 12 },
+    { stat: 'def',        base: 2,  max: 10 },
+    { stat: 'hp',         base: 20, max: 80 },
+    { stat: 'crit',       base: 1,  max: 5  },
+    { stat: 'agi',        base: 1,  max: 5  },
+    { stat: 'critDmg',    base: 5,  max: 20 },
+    { stat: 'leech',      base: 1,  max: 6  },
+    { stat: 'skillPower', base: 2,  max: 10 }
+  ];
+
+  /* ---- 洗练配置 ---- */
+  var REFINE = {
+    stoneRate: 0.06,          // 洗练石独立掉落率
+    stoneBossBonus: 0.12,     // Boss 额外洗练石掉率
+    stoneName: '洗练石'
+  };
 
   /* ---- 掉落配置 ---- */
   var DROPS = {
@@ -284,6 +314,10 @@ var CONFIG = (function () {
     GEMS: GEMS,
     MONSTERS: MONSTERS,
     STAGES: STAGES,
-    SAVE: SAVE
+    SAVE: SAVE,
+    AFFIX_TIER: AFFIX_TIER,
+    AFFIX_POOL: AFFIX_POOL,
+    AFFIX_STAT_LABEL: AFFIX_STAT_LABEL,
+    REFINE: REFINE
   };
 })();

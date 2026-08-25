@@ -199,11 +199,77 @@ var Forge = (function () {
     return { success: true, message: '抠下『' + g.name + '』', gem: g };
   }
 
+  /* ---- 洗练（重掷词缀） ----
+   * 消耗 洗练石 × reforgeStone + 铜钱 × reforgeGold
+   * 保留词缀数量上下限（随品质变动），重掷类型/数值/品阶
+   * 返回 {success, message, changed, costStone, costGold}
+   */
+  function refine(uid) {
+    var s = State.get();
+    var item = locateItem(uid);
+    if (!item) return { success: false, message: '未找到装备' };
+
+    var q = CONFIG.QUALITY.find(function (x) { return x.id === item.qualityId; });
+    if (!q) return { success: false, message: '品质数据缺失' };
+
+    var needStone = q.reforgeStone || 1;
+    var needGold = q.reforgeGold || 0;
+    if (s.currencies.stone < needStone) {
+      return { success: false, message: '洗练石不足（需要 ' + needStone + '，当前 ' + s.currencies.stone + '）' };
+    }
+    if (s.currencies.gold < needGold) {
+      return { success: false, message: '铜钱不足（需要 ' + needGold + '）' };
+    }
+
+    State.spendStone(needStone);
+    State.spendGold(needGold);
+
+    // 重掷词缀
+    var count = q.affixMin + Math.floor(Math.random() * (q.affixMax - q.affixMin + 1));
+    var newAffixes = [];
+    var pool = CONFIG.AFFIX_POOL.slice();
+    var label = CONFIG.AFFIX_STAT_LABEL;
+    for (var i = 0; i < count && pool.length > 0; i++) {
+      var idx = Math.floor(Math.random() * pool.length);
+      var affix = pool.splice(idx, 1)[0];
+      var tier = CONFIG.AFFIX_TIER[rollTierIndex()];
+      var lvScale = 1 + (item.level || 10) / 30;
+      var val = Math.floor((affix.base + Math.random() * (affix.max - affix.base)) * lvScale * q.mult * tier.mult);
+      newAffixes.push({
+        stat: affix.stat,
+        name: label[affix.stat] || affix.stat,
+        val: val,
+        tier: tier.id,
+        tierName: tier.name,
+        tierColor: tier.color
+      });
+    }
+    item.affixes = newAffixes;
+
+    Bus.emit('equipChange', item.slot);
+    Bus.emit('refineResult', { uid: uid, item: item, stone: needStone, gold: needGold });
+    return { success: true, message: '洗练成功，重新生成 ' + count + ' 条词缀', changed: true, costStone: needStone, costGold: needGold };
+  }
+
+  /* ---- 洗练品阶加权掷 ---- */
+  function rollTierIndex() {
+    var tiers = CONFIG.AFFIX_TIER;
+    var total = tiers.reduce(function (a, b) { return a + (b.weight || 0); }, 0);
+    var r = Math.random() * total;
+    var acc = 0;
+    for (var i = 0; i < tiers.length; i++) {
+      acc += (tiers[i].weight || 0);
+      if (r < acc) return i;
+    }
+    return 0;
+  }
+
   return {
     enhance: enhance,
     socket: socket,
     insertGem: insertGem,
     removeGem: removeGem,
+    refine: refine,
     getGemSummary: getGemSummary,
     getForgeConfig: getForgeConfig,
     getQualityMax: getQualityMax,
