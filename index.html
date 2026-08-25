@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>洪荒剑仙 P0 原型</title>
-<link rel="stylesheet" href="css/style.css?v=9">
+<link rel="stylesheet" href="css/style.css?v=10">
 </head>
 <body>
 
@@ -70,7 +70,7 @@
     <!-- 中栏：大地图 + 战斗日志 -->
     <section class="panel center-panel">
       <div class="map-head">
-        <h3 id="map-title">青石镇</h3>
+        <h3 id="map-title">瓦当镇</h3>
         <span id="map-pos" class="map-pos"></span>
       </div>
       <div class="wm-controls">
@@ -89,6 +89,33 @@
       </div>
       <div id="map-travel" class="map-travel"></div>
       <div id="wm-legend" class="wm-legend"></div>
+
+      <!-- 2D 场景视图（进入场景后显示，替代大地图） -->
+      <div id="scene-view" class="scene-view" style="display:none">
+        <div class="scene-header">
+          <button id="scene-back" class="btn-sm">← 返回大地图</button>
+          <span id="scene-title" class="scene-title"></span>
+          <span id="scene-info" class="scene-info"></span>
+        </div>
+        <div id="scene-canvas" class="scene-canvas"></div>
+      </div>
+
+      <!-- 区域详情卡（点击标点弹窗） -->
+      <div id="area-detail" class="area-detail" style="display:none">
+        <div class="ad-card">
+          <div class="ad-header">
+            <span id="ad-name" class="ad-name"></span>
+            <span id="ad-type" class="ad-type"></span>
+            <button id="ad-close" class="ad-close">✕</button>
+          </div>
+          <div id="ad-info" class="ad-info"></div>
+          <div id="ad-monsters" class="ad-monsters"></div>
+          <div class="ad-actions">
+            <button id="ad-enter" class="btn-primary">进入场景</button>
+            <button id="ad-travel" class="btn-sm" style="display:none">前往此地</button>
+          </div>
+        </div>
+      </div>
 
       <div class="idle-status">
         <span id="map-loc" class="idle-state"></span>
@@ -155,8 +182,8 @@
 
 </div>
 
-<!-- 脚本引用顺序：数据 -> 总线 -> 状态 -> 大地图 -> 系统 -> UI -> 入口 -->
-<script src="js/data.js?v=8"></script>
+<!-- 脚本引用顺序：数据 -> 总线 -> 状态 -> 大地图 -> 系统 -> 场景 -> UI -> 入口 -->
+<script src="js/data.js?v=9"></script>
 <script src="js/eventbus.js?v=3"></script>
 <script src="js/state.js?v=8"></script>
 <script src="js/map.js?v=4"></script>
@@ -165,7 +192,8 @@
 <script src="js/forge.js?v=6"></script>
 <script src="js/idle.js?v=5"></script>
 <script src="js/save.js?v=7"></script>
-<script src="js/ui.js?v=11"></script>
+<script src="js/ui.js?v=12"></script>
+<script src="js/scene.js?v=1"></script>
 <script src="js/app.js?v=6"></script>
 </body>
 </html>

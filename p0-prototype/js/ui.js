@@ -345,21 +345,12 @@ var UI = (function () {
     renderFilterBar();
   }
 
-  /* ---- 点击总览图标点：直达或提示解锁 ---- */
+  /* ---- 点击总览图标点：弹出详情卡 ---- */
   function onWorldNodeClick(id) {
     var s = State.get();
-    if (id === s.map.areaId) return;
     var a = WorldMap.getArea(id);
     if (!a) return;
-    if (s.player.level < (a.unlockLv || 0)) {
-      Combat.getLog().unshift({ time: Date.now(), text: '「' + a.name + '」需 Lv.' + a.unlockLv + ' 才可前往' });
-      refresh();
-      return;
-    }
-    if (WorldMap.travelTo(id)) {
-      updateMap();
-      updateIdleStatus();
-    }
+    Scene.showDetail(id);
   }
 
   /* ---- 图例 ---- */
@@ -839,6 +830,7 @@ var UI = (function () {
     refresh: refresh,
     showOffline: showOffline,
     updateTopBar: updateTopBar,
+    updateMap: updateMap,
     updateBottomBar: updateBottomBar,
     updateIdleStatus: updateIdleStatus,
     updateCombatLog: updateCombatLog
